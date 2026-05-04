@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Standly — Sistema de Reservas</title>
+<style>
+  html, body { margin: 0; padding: 0; background: #f0eee9; font-family: 'Inter', system-ui, sans-serif; overflow: hidden; }
+  #root { height: 100vh; display: flex; flex-direction: column; }
+  .view-toggle {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1A1816;
+    padding: 6px;
+    border-radius: 12px;
+    display: flex;
+    gap: 4px;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.25);
+    z-index: 9999;
+  }
+  .view-toggle button {
+    border: none;
+    background: transparent;
+    color: #9A968E;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .view-toggle button.active {
+    background: #fff;
+    color: #1A1816;
+  }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="tokens.jsx"></script>
+<script type="text/babel" src="components.jsx"></script>
+<script type="text/babel" src="public-screens.jsx"></script>
+<script type="text/babel" src="admin-screens.jsx"></script>
+
+<script type="text/babel">
+const { useState, useEffect } = React;
+
+// TRANSLATIONS
+const I18N = {
+  es: {
+    welcome: 'Bienvenido',
+    selectLanguage: 'Selecciona tu idioma',
+    start: 'Comenzar reserva',
+    reserveTitle: 'Reserva tu stand',
+    reserveSubtitle: 'Selecciona un stand verde para reservarlo.',
+    step2: 'Paso 2 de 3',
+    yourData: 'Tus datos',
+    backToMap: 'Volver al mapa',
+    fullName: 'Nombre completo',
+    idCard: 'Cédula',
+    phone: 'Número de celular',
+    email: 'Correo electrónico',
+    send: 'Enviar reserva',
+    successTitle: '¡Solicitud enviada!',
+    successBody: 'Tu reserva ha sido recibida. Te contactaremos por WhatsApp.',
+    whatsappBtn: 'Continuar en WhatsApp',
+    adminView: 'Administrador',
+    publicView: 'Vista Pública',
+    langName: 'Español'
+  },
+  en: {
+    welcome: 'Welcome',
+    selectLanguage: 'Select your language',
+    start: 'Start reservation',
+    reserveTitle: 'Reserve your stand',
+    reserveSubtitle: 'Select a green stand to reserve it.',
+    step2: 'Step 2 of 3',
+    yourData: 'Your details',
+    backToMap: 'Back to map',
+    fullName: 'Full name',
+    idCard: 'ID Number',
+    phone: 'Phone number',
+    email: 'Email address',
+    send: 'Send reservation',
+    successTitle: 'Request sent!',
+    successBody: 'Your reservation has been received. We will contact you via WhatsApp.',
+    whatsappBtn: 'Continue on WhatsApp',
+    adminView: 'Admin',
+    publicView: 'Public View',
+    langName: 'English'
+  }
+};
+
+// Main App Controller
+function App() {
+  const [lang, setLang] = useState('es');
+  const [view, setView] = useState('public'); 
+  const [step, setStep] = useState('welcome'); // 'welcome' | 'map' | 'form' | 'success'
+  const [selectedStand, setSelectedStand] = useState(null);
+  const [showDetail, setShowDetail] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+
+  const t = I18N[lang];
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 1024);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // FLOW HANDLERS
+  const handleSelectStand = (stand) => {
+    setSelectedStand(stand);
+    if (isMobile) setShowDetail(true);
+  };
+
+  const handleStartReservation = () => {
+    setShowDetail(false);
+    setStep('form');
+  };
+
+  const handleSubmitReservation = () => {
+    setStep('success');
+  };
+
+  const handleBackToMap = () => {
+    setStep('map');
+    setSelectedStand(null);
+    setShowDetail(false);
+  };
+
+  // RENDER WELCOME
+  if (step === 'welcome') {
+    return <WelcomeScreen lang={lang} setLang={setLang} onStart={() => setStep('map')} />;
+  }
+
+  // RENDER PUBLIC VIEW
+  const renderPublic = () => {
+    if (step === 'success') {
+      return <FunctionalConfirmation t={t} stand={selectedStand} onBack={handleBackToMap} />;
+    }
+
+    if (step === 'form') {
+      return isMobile ? 
+        <FunctionalFormMobile t={t} stand={selectedStand} onBack={() => setStep('map')} onSubmit={handleSubmitReservation} /> : 
+        <FunctionalFormDesktop t={t} stand={selectedStand} onBack={() => setStep('map')} onSubmit={handleSubmitReservation} />;
+    }
+
+    if (isMobile) {
+      return (
+        <div style={{ height: '100%', position: 'relative' }}>
+          <PublicMapMobile onSelect={handleSelectStand} selectedId={selectedStand?.id} />
+          {showDetail && selectedStand && (
+            <div style={{ position: 'absolute', inset: 0, zIndex: 100 }}>
+              <div style={{ position: 'absolute', inset: 0, background: 'rgba(20,18,16,0.4)' }} onClick={() => setShowDetail(false)} />
+              <div style={{
+                position: 'absolute', left: 0, right: 0, bottom: 0,
+                background: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20,
+                padding: '12px 20px 32px', maxHeight: '80%', overflowY: 'auto',
+                boxShadow: '0 -8px 30px rgba(0,0,0,0.18)',
+              }}>
+                <div style={{ width: 40, height: 4, background: T.borderStrong, borderRadius: 2, margin: '0 auto 16px' }} />
+                <StandDetailPanel stand={selectedStand} onReserve={handleStartReservation} />
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    return (
+      <div className="cs-screen" style={{ width: '100%', height: '100%', background: T.surface, display: 'flex', flexDirection: 'column' }}>
+        <PublicHeader desktop />
+        <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 360px', gap: 0, minHeight: 0 }}>
+          <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16, minHeight: 0 }}>
+            <div className="animate-fade-in">
+              <div style={{ fontSize: 24, fontWeight: 700, letterSpacing: -0.5 }}>{t.reserveTitle}</div>
+              <div style={{ fontSize: 14, color: T.textMuted, marginTop: 4 }}>{t.reserveSubtitle}</div>
+            </div>
+            <div style={{ flex: 1, minHeight: 0 }}>
+              <CSStandMap onSelect={handleSelectStand} selectedId={selectedStand?.id} height="100%" />
+            </div>
+            <CSCard padding={16}><CSLegend /></CSCard>
+          </div>
+          <div style={{ borderLeft: `1px solid ${T.border}`, background: '#fff', padding: 24, overflowY: 'auto' }}>
+            {selectedStand ? <StandDetailPanel stand={selectedStand} onReserve={handleStartReservation} /> : <EmptyDetailPanel />}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div id="root">
+      {view === 'public' ? renderPublic() : <AdminDashboard />}
+
+      <div className="view-toggle">
+        <button className={view === 'public' ? 'active' : ''} onClick={() => { setView('public'); if(step === 'welcome') setStep('map'); }}>{t.publicView}</button>
+        <button className={view === 'admin' ? 'active' : ''} onClick={() => setView('admin')}>{t.adminView}</button>
+      </div>
+    </div>
+  );
+}
+
+// WELCOME SCREEN
+function WelcomeScreen({ lang, setLang, onStart }) {
+  const t = I18N[lang];
+  return (
+    <div className="cs-screen" style={{ 
+      height: '100%', 
+      background: 'linear-gradient(135deg, #1A1816 0%, #332F2B 100%)', 
+      display: 'flex', 
+      alignItems: 'center', 
+      justifyContent: 'center',
+      padding: 24,
+      position: 'relative',
+      overflow: 'hidden'
+    }}>
+      {/* Decorative background blobs */}
+      <div style={{ position: 'absolute', top: '-10%', right: '-10%', width: '40%', height: '40%', background: T.accent, opacity: 0.15, filter: 'blur(100px)', borderRadius: '50%' }} />
+      <div style={{ position: 'absolute', bottom: '-10%', left: '-10%', width: '40%', height: '40%', background: T.tierA, opacity: 0.1, filter: 'blur(100px)', borderRadius: '50%' }} />
+
+      <div className="animate-fade-in" style={{ width: '100%', maxWidth: 440, textAlign: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 32 }}>
+          <CSLogo size={32} color="#fff" />
+        </div>
+        
+        <CSCard style={{ background: 'rgba(255,255,255,0.03)', backdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.1)', padding: 40, borderRadius: 32 }}>
+          <h1 style={{ color: '#fff', fontSize: 32, fontWeight: 700, margin: '0 0 8px 0', letterSpacing: -1 }}>{t.welcome}</h1>
+          <p style={{ color: '#9A968E', fontSize: 16, margin: '0 0 32px 0', lineHeight: 1.5 }}>{t.selectLanguage}</p>
+
+          <div style={{ display: 'flex', gap: 12, marginBottom: 32 }}>
+            <button 
+              onClick={() => setLang('es')}
+              style={{ 
+                flex: 1, padding: '16px', borderRadius: 16, border: `2px solid ${lang === 'es' ? T.accent : 'rgba(255,255,255,0.1)'}`,
+                background: lang === 'es' ? T.accentSoft + '10' : 'transparent', color: lang === 'es' ? '#fff' : '#9A968E',
+                fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s'
+              }}>
+              Español
+            </button>
+            <button 
+              onClick={() => setLang('en')}
+              style={{ 
+                flex: 1, padding: '16px', borderRadius: 16, border: `2px solid ${lang === 'en' ? T.accent : 'rgba(255,255,255,0.1)'}`,
+                background: lang === 'en' ? T.accentSoft + '10' : 'transparent', color: lang === 'en' ? '#fff' : '#9A968E',
+                fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s'
+              }}>
+              English
+            </button>
+          </div>
+
+          <CSButton variant="primary" size="lg" full onClick={onStart} style={{ height: 60, fontSize: 18, borderRadius: 18 }}>
+            {t.start}
+          </CSButton>
+        </CSCard>
+        
+        <div style={{ marginTop: 32, fontSize: 12, color: 'rgba(255,255,255,0.3)', letterSpacing: 1, textTransform: 'uppercase', fontWeight: 600 }}>
+          Expo Emprende · Chiriquistorage
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// FUNCTIONAL WRAPPERS (With i18n support)
+function FunctionalFormMobile({ t, stand, onBack, onSubmit }) {
+  const tier = TIERS[stand?.tier || 'C'];
+  return (
+    <div className="cs-screen" style={{ height: '100%', background: '#fff', display: 'flex', flexDirection: 'column' }}>
+      <PublicHeader />
+      <div style={{ padding: '16px 16px 8px', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <button onClick={onBack} style={{ border: 'none', background: 'transparent', padding: 0, color: T.text, fontSize: 14, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 4 }}>
+          {Icons.arrowRight(14)} {t.backToMap}
+        </button>
+      </div>
+      <div style={{ padding: '0 20px', flex: 1, overflowY: 'auto' }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: T.textMuted, textTransform: 'uppercase', letterSpacing: 0.6 }}>{t.step2}</div>
+        <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: -0.4, marginTop: 4 }}>{t.yourData}</div>
+        
+        <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <CSField label={t.fullName} required><CSInput placeholder="María González" size="lg" icon={Icons.user(14)} /></CSField>
+          <CSField label={t.idCard} required><CSInput placeholder="8-000-0000" size="lg" icon={Icons.card(14)} /></CSField>
+          <CSField label={t.phone} required><CSInput placeholder="+507 6000-0000" size="lg" icon={Icons.phone(14)} /></CSField>
+        </div>
+      </div>
+      <div style={{ padding: '16px 20px 32px', borderTop: `1px solid ${T.border}`, background: '#fff' }}>
+        <CSButton variant="primary" size="lg" full onClick={onSubmit}>{t.send}</CSButton>
+      </div>
+    </div>
+  );
+}
+
+function FunctionalFormDesktop({ t, stand, onBack, onSubmit }) {
+  const tier = TIERS[stand?.tier || 'C'];
+  return (
+    <div className="cs-screen animate-fade-in" style={{ width: '100%', height: '100%', background: T.surface, padding: 32 }}>
+      <div style={{ maxWidth: 720, margin: '0 auto' }}>
+        <button onClick={onBack} style={{ border: 'none', background: 'transparent', padding: 0, color: T.text, fontSize: 14, fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 16 }}>
+          {t.backToMap}
+        </button>
+        <CSCard padding={0}>
+          <div style={{ padding: 24, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <CSField label={t.fullName} required><CSInput placeholder="María González" size="lg" /></CSField>
+            <CSField label={t.idCard} required><CSInput placeholder="8-000-0000" size="lg" /></CSField>
+            <CSField label={t.phone} required><CSInput placeholder="+507 6000-0000" size="lg" /></CSField>
+            <CSField label={t.email} required><CSInput placeholder="tu@correo.com" size="lg" /></CSField>
+          </div>
+          <div style={{ padding: 20, borderTop: `1px solid ${T.border}`, display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
+            <CSButton variant="primary" size="lg" onClick={onSubmit}>{t.send}</CSButton>
+          </div>
+        </CSCard>
+      </div>
+    </div>
+  );
+}
+
+function FunctionalConfirmation({ t, stand, onBack }) {
+  return (
+    <div className="cs-screen animate-fade-in" style={{ height: '100%', background: T.surface, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      <CSCard style={{ maxWidth: 400, textAlign: 'center', padding: 32 }}>
+        <div style={{ width: 64, height: 64, borderRadius: 32, background: STATUS.available.soft, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: STATUS.available.color, marginBottom: 20 }}>
+          {Icons.check(32)}
+        </div>
+        <div style={{ fontSize: 24, fontWeight: 700, marginBottom: 12 }}>{t.successTitle}</div>
+        <p style={{ fontSize: 14, color: T.textMuted, lineHeight: 1.5, marginBottom: 24 }}>{t.successBody}</p>
+        <CSButton variant="whatsapp" size="lg" full icon={Icons.whatsapp(18)}>{t.whatsappBtn}</CSButton>
+        <CSButton variant="ghost" full style={{ marginTop: 12 }} onClick={onBack}>{t.backToMap}</CSButton>
+      </CSCard>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
