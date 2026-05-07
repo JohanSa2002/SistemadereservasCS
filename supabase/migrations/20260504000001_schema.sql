@@ -39,6 +39,10 @@ CREATE TABLE IF NOT EXISTS public.stands (
   tier_id    uuid        NOT NULL REFERENCES public.tiers(id),
   nombre     text        NOT NULL,
   svg_id     text        NOT NULL,
+  x          int         NOT NULL DEFAULT 0,
+  y          int         NOT NULL DEFAULT 0,
+  w          int         NOT NULL DEFAULT 50,
+  h          int         NOT NULL DEFAULT 54,
   status     text        NOT NULL DEFAULT 'available'
                CHECK (status IN ('available', 'pending', 'reserved')),
   created_at timestamptz NOT NULL DEFAULT now()
@@ -48,10 +52,12 @@ CREATE TABLE IF NOT EXISTS public.stands (
 CREATE TABLE IF NOT EXISTS public.reservations (
   id         uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
   stand_id   uuid        NOT NULL REFERENCES public.stands(id) ON DELETE CASCADE,
-  nombre     text        NOT NULL,
-  cedula     text        NOT NULL,
-  celular    text        NOT NULL,
-  correo     text        NOT NULL,
+  nombre        text        NOT NULL,
+  cedula        text        NOT NULL,
+  celular       text        NOT NULL,
+  correo        text        NOT NULL,
+  metodo_pago   text        NOT NULL DEFAULT 'efectivo'
+                  CHECK (metodo_pago IN ('efectivo', 'yappi')),
   status     text        NOT NULL DEFAULT 'pending'
                CHECK (status IN ('pending', 'confirmed', 'rejected')),
   created_at timestamptz NOT NULL DEFAULT now()

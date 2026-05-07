@@ -2,36 +2,82 @@ import React, { useState, useEffect } from 'react';
 import { T, STATUS, TIERS } from '../../theme/tokens';
 import { CSCard, CSBadge, CSButton, Icons, CSField, CSInput } from '../../components/UI';
 import { StandMap, Legend } from '../../components/StandMap';
-import { getActiveEvent, getStandsWithTiers, releaseStand, manualReservation, subscribeToStands } from '../../api/api';
+import { getActiveEvent, getStandsWithTiers, getTiers, releaseStand, manualReservation, updateStandTier, subscribeToStands } from '../../api/api';
+
+const EMPTY_FORM = { nombre: '', cedula: '', celular: '', correo: '' };
 
 export function AdminMap() {
   const [loading, setLoading] = useState(true);
   const [event, setEvent] = useState(null);
   const [stands, setStands] = useState([]);
+  const [tiers, setTiers] = useState([]);
   const [selected, setSelected] = useState(null);
   const [isManual, setIsManual] = useState(false);
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
+    let channel;
+    async function loadData() {
+      try {
+        setLoading(true);
+        const activeEvent = await getActiveEvent();
+        setEvent(activeEvent);
+        const data = await getStandsWithTiers(activeEvent.id);
+        setStands(data);
+        const tiersData = await getTiers();
+        setTiers(tiersData);
+        channel = subscribeToStands(activeEvent.id, (newStand) => {
+          setStands(prev => prev.map(s => s.id === newStand.id ? { ...s, ...newStand } : s));
+        });
+      } catch (error) {
+        console.error('Error loading map data:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
     loadData();
+    return () => { if (channel) channel.unsubscribe(); };
   }, []);
 
   async function loadData() {
     try {
-      setLoading(true);
       const activeEvent = await getActiveEvent();
       setEvent(activeEvent);
       const data = await getStandsWithTiers(activeEvent.id);
       setStands(data);
-      
-      // Subscribe to real-time changes
-      const channel = subscribeToStands(activeEvent.id, (newStand) => {
-        setStands(prev => prev.map(s => s.id === newStand.id ? { ...s, ...newStand } : s));
-      });
-      return () => channel.unsubscribe();
     } catch (error) {
-      console.error('Error loading map data:', error);
+      console.error(error);
+    }
+  }
+
+  async function handleTierChange(tierId) {
+    try {
+      await updateStandTier(selected.id, tierId);
+      await loadData();
+      setSelected(prev => {
+        const updated = stands.find(s => s.id === prev.id);
+        return updated ?? prev;
+      });
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
+  async function handleManualSave() {
+    const { nombre, cedula, celular, correo } = form;
+    if (!nombre || !cedula || !celular || !correo) return alert('Completa todos los campos');
+    setSaving(true);
+    try {
+      await manualReservation({ stand_id: selected.id, nombre, cedula, celular, correo });
+      setIsManual(false);
+      setForm(EMPTY_FORM);
+      setSelected(null);
+      await loadData();
+    } catch (err) {
+      alert(err.message);
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   }
 
@@ -69,7 +115,7 @@ export function AdminMap() {
         />
         
         <CSCard padding={16}>
-          <Legend />
+          <Legend tiers={tiers} />
         </CSCard>
       </div>
 
@@ -87,6 +133,28 @@ export function AdminMap() {
                 {tier?.nombre} · ${tier?.precio} USD
               </div>
 
+              {tiers.length > 0 && (
+                <div style={{ marginTop: 16 }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: T.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Cambiar categoría</div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    {tiers.map(t => {
+                      const isActive = t.id === selected.tier_id;
+                      return (
+                        <button key={t.id} onClick={() => !isActive && handleTierChange(t.id)} style={{
+                          flex: 1, padding: '8px 4px', borderRadius: T.r2, border: `2px solid ${isActive ? t.color : T.border}`,
+                          background: isActive ? t.color + '18' : 'transparent',
+                          color: isActive ? t.color : T.textMuted,
+                          fontWeight: 700, fontSize: 13, cursor: isActive ? 'default' : 'pointer',
+                          fontFamily: T.font, transition: 'all 0.15s',
+                        }}>
+                          {t.nombre.replace('Tier ', '')}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {selected.status === 'available' ? (
                   <CSButton variant="primary" full onClick={() => setIsManual(true)}>Reserva Manual</CSButton>
@@ -102,11 +170,23 @@ export function AdminMap() {
             {isManual && (
               <CSCard padding={24} style={{ border: `2px solid ${T.accent}` }}>
                 <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16 }}>Nueva Reserva Manual</h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                  <CSField label="Nombre del expositor"><CSInput placeholder="Ej. Juan Pérez" /></CSField>
-                  <CSField label="Cédula"><CSInput placeholder="0-000-0000" /></CSField>
-                  <CSButton variant="primary" full>Guardar Reserva</CSButton>
-                  <CSButton variant="ghost" full onClick={() => setIsManual(false)}>Cancelar</CSButton>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <CSField label="Nombre completo">
+                    <CSInput placeholder="Ej. Juan Pérez" value={form.nombre} onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))} />
+                  </CSField>
+                  <CSField label="Cédula">
+                    <CSInput placeholder="0-000-0000" value={form.cedula} onChange={e => setForm(f => ({ ...f, cedula: e.target.value }))} />
+                  </CSField>
+                  <CSField label="Celular">
+                    <CSInput placeholder="6000-0000" value={form.celular} onChange={e => setForm(f => ({ ...f, celular: e.target.value }))} />
+                  </CSField>
+                  <CSField label="Correo electrónico">
+                    <CSInput type="email" placeholder="correo@ejemplo.com" value={form.correo} onChange={e => setForm(f => ({ ...f, correo: e.target.value }))} />
+                  </CSField>
+                  <CSButton variant="primary" full onClick={handleManualSave} disabled={saving}>
+                    {saving ? 'Guardando...' : 'Guardar Reserva'}
+                  </CSButton>
+                  <CSButton variant="ghost" full onClick={() => { setIsManual(false); setForm(EMPTY_FORM); }}>Cancelar</CSButton>
                 </div>
               </CSCard>
             )}

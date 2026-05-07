@@ -106,6 +106,14 @@ export async function getTiers() {
  * @param {string} tierId - UUID del tier
  * @param {number} precio - Nuevo precio (debe ser > 0)
  */
+export async function updateStandTier(standId, tierId) {
+  const { error } = await supabase
+    .from('stands')
+    .update({ tier_id: tierId })
+    .eq('id', standId);
+  throwIfError(error, 'Error al actualizar tier del stand');
+}
+
 export async function updateTierPrice(tierId, precio) {
   const { data, error } = await supabase.rpc('update_tier_price', {
     p_tier_id: tierId,
@@ -166,13 +174,14 @@ export async function releaseStand(standId) {
  * @returns {{ ok: true, reservation_id: string }}
  * @throws Si el stand ya no está disponible o la cédula ya tiene reserva
  */
-export async function createReservation({ stand_id, nombre, cedula, celular, correo }) {
+export async function createReservation({ stand_id, nombre, cedula, celular, correo, metodo_pago = 'efectivo' }) {
   const { data, error } = await supabase.rpc('create_reservation', {
-    p_stand_id: stand_id,
-    p_nombre:   nombre,
-    p_cedula:   cedula,
-    p_celular:  celular,
-    p_correo:   correo,
+    p_stand_id:    stand_id,
+    p_nombre:      nombre,
+    p_cedula:      cedula,
+    p_celular:     celular,
+    p_correo:      correo,
+    p_metodo_pago: metodo_pago,
   });
 
   throwIfError(error, 'Error al crear la reserva');

@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { T } from '../theme/tokens';
-import { CSCard, CSButton, CSInput, CSField, Icons, CSLogo } from '../components/UI';
-import { signIn } from '../api/api';
+import { useNavigate } from 'react-router-dom';
+import { T } from '../../theme/tokens';
+import { CSCard, CSButton, CSInput, CSField, Icons, CSLogo } from '../../components/UI';
+import { signIn } from '../../api/api';
 
 export function Login({ onLogin }) {
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -26,7 +28,17 @@ export function Login({ onLogin }) {
   return (
     <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: T.surface2 }}>
       <div style={{ width: '100%', maxWidth: 400, padding: 20 }}>
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 32 }}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 32, position: 'relative' }}>
+          <button onClick={() => navigate('/', { replace: true })} style={{
+            position: 'absolute', left: 0, top: '50%', transform: 'translateY(-50%)',
+            display: 'flex', alignItems: 'center', gap: 6,
+            background: 'transparent', border: 'none', color: T.textMuted,
+            fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: T.font,
+            padding: '4px 8px', borderRadius: T.r1,
+          }}>
+            <Icons.ArrowRight size={14} style={{ transform: 'rotate(180deg)' }} />
+            Volver
+          </button>
           <CSLogo size={24} />
         </div>
         

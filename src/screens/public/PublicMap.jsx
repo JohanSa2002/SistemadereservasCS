@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { T } from '../../theme/tokens';
 import { CSCard, CSButton, CSBadge, Icons } from '../../components/UI';
 import { StandMap, Legend } from '../../components/StandMap';
-import { getActiveEvent, getStandsWithTiers, subscribeToStands } from '../../api/api';
+import { getActiveEvent, getStandsWithTiers, getTiers, subscribeToStands } from '../../api/api';
 
-export function PublicMap({ lang, onSelectStand }) {
+export function PublicMap({ lang, onSelectStand, onBack }) {
   const [loading, setLoading] = useState(true);
   const [event, setEvent] = useState(null);
   const [stands, setStands] = useState([]);
+  const [tiers, setTiers] = useState([]);
   const [selected, setSelected] = useState(null);
 
   const t = {
@@ -18,6 +19,7 @@ export function PublicMap({ lang, onSelectStand }) {
       details: 'Detalles del Stand',
       available: 'Disponible',
       notAvailable: 'No disponible',
+      features: ['Espacio de 3x3 metros', 'Punto eléctrico incluido', 'Mesa y 2 sillas'],
     },
     en: {
       title: 'Reserve your Stand',
@@ -26,31 +28,33 @@ export function PublicMap({ lang, onSelectStand }) {
       details: 'Stand Details',
       available: 'Available',
       notAvailable: 'Not available',
+      features: ['3x3 meter space', 'Electrical outlet included', 'Table and 2 chairs'],
     }
   }[lang];
 
   useEffect(() => {
-    loadData();
-  }, []);
-
-  async function loadData() {
-    try {
-      setLoading(true);
-      const activeEvent = await getActiveEvent();
-      setEvent(activeEvent);
-      const data = await getStandsWithTiers(activeEvent.id);
-      setStands(data);
-      
-      const channel = subscribeToStands(activeEvent.id, (newStand) => {
-        setStands(prev => prev.map(s => s.id === newStand.id ? { ...s, ...newStand } : s));
-      });
-      return () => channel.unsubscribe();
-    } catch (error) {
-      console.error('Error loading public map:', error);
-    } finally {
-      setLoading(false);
+    let channel;
+    async function loadData() {
+      try {
+        setLoading(true);
+        const activeEvent = await getActiveEvent();
+        setEvent(activeEvent);
+        const data = await getStandsWithTiers(activeEvent.id);
+        setStands(data);
+        const tiersData = await getTiers();
+        setTiers(tiersData);
+        channel = subscribeToStands(activeEvent.id, (newStand) => {
+          setStands(prev => prev.map(s => s.id === newStand.id ? { ...s, ...newStand } : s));
+        });
+      } catch (error) {
+        console.error('Error loading public map:', error);
+      } finally {
+        setLoading(false);
+      }
     }
-  }
+    loadData();
+    return () => { if (channel) channel.unsubscribe(); };
+  }, []);
 
   if (loading) return <div style={{ padding: 40, textAlign: 'center' }}>{lang === 'es' ? 'Cargando mapa...' : 'Loading map...'}</div>;
 
@@ -58,6 +62,15 @@ export function PublicMap({ lang, onSelectStand }) {
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: T.surface }}>
       <header style={{ padding: '20px 24px', background: '#fff', borderBottom: `1px solid ${T.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button onClick={onBack} style={{
+            display: 'flex', alignItems: 'center', gap: 6, background: 'transparent',
+            border: 'none', color: T.textMuted, fontSize: 13, fontWeight: 500,
+            cursor: 'pointer', fontFamily: T.font, padding: '6px 10px',
+            borderRadius: T.r1,
+          }}>
+            <Icons.ArrowRight size={14} style={{ transform: 'rotate(180deg)' }} />
+            {lang === 'es' ? 'Inicio' : 'Home'}
+          </button>
           <div style={{ width: 32, height: 32, background: T.accent, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
             <Icons.MapPin size={18} />
           </div>
@@ -66,7 +79,7 @@ export function PublicMap({ lang, onSelectStand }) {
             <p style={{ fontSize: 12, color: T.textMuted, margin: 0 }}>{event?.nombre}</p>
           </div>
         </div>
-        <Legend />
+        <Legend tiers={tiers} lang={lang} />
       </header>
 
       <main style={{ flex: 1, display: 'flex', minHeight: 0 }}>
@@ -102,9 +115,9 @@ export function PublicMap({ lang, onSelectStand }) {
               <CSCard padding={16} style={{ background: T.surface, border: 'none', marginBottom: 32 }}>
                 <div style={{ fontSize: 13, fontWeight: 600, color: T.textMuted, marginBottom: 8 }}>{t.details}</div>
                 <ul style={{ padding: 0, margin: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  <DetailItem icon={<Icons.Check size={14} />} text="Espacio de 3x3 metros" />
-                  <DetailItem icon={<Icons.Check size={14} />} text="Punto eléctrico incluido" />
-                  <DetailItem icon={<Icons.Check size={14} />} text="Mesa y 2 sillas" />
+                  {t.features.map(f => (
+                    <DetailItem key={f} icon={<Icons.Check size={14} />} text={f} />
+                  ))}
                 </ul>
               </CSCard>
 

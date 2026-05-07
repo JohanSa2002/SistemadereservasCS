@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { T } from '../../theme/tokens';
 import { CSLogo, Icons } from '../../components/UI';
 import { LayoutDashboard, Map as MapIcon, Layers, Calendar, FileText, LogOut } from 'lucide-react';
+import { signOut } from '../../api/api';
 
 export function AdminLayout({ children }) {
   const navigate = useNavigate();
@@ -12,7 +13,7 @@ export function AdminLayout({ children }) {
     { id: 'dashboard', label: 'Resumen', path: '/admin', icon: LayoutDashboard },
     { id: 'map', label: 'Mapa', path: '/admin/map', icon: MapIcon },
     { id: 'tiers', label: 'Categorías', path: '/admin/tiers', icon: Layers },
-    { id: 'cycles', label: 'Ciclos', path: '/admin/cycles', icon: Calendar },
+    { id: 'cycles', label: 'Eventos', path: '/admin/cycles', icon: Calendar },
     { id: 'export', label: 'Exportar', path: '/admin/export', icon: FileText },
   ];
 
@@ -53,12 +54,14 @@ export function AdminLayout({ children }) {
             <div style={{ fontSize: 13, fontWeight: 600 }}>Admin User</div>
             <div style={{ fontSize: 12, color: T.textMuted }}>admin@standly.pa</div>
           </div>
-          <button style={{
-            width: '100%', display: 'flex', alignItems: 'center', gap: 12,
-            padding: '12px 16px', borderRadius: T.r2, border: 'none',
-            background: 'transparent', color: T.reserved, fontWeight: 600,
-            fontSize: 14, cursor: 'pointer'
-          }}>
+          <button
+            onClick={() => { navigate('/'); signOut(); }}
+            style={{
+              width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+              padding: '12px 16px', borderRadius: T.r2, border: 'none',
+              background: 'transparent', color: T.reserved, fontWeight: 600,
+              fontSize: 14, cursor: 'pointer'
+            }}>
             <LogOut size={18} />
             Cerrar sesión
           </button>

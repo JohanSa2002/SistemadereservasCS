@@ -10,7 +10,8 @@ export function ReservationFlow({ lang, stand, onBack }) {
     nombre: '',
     cedula: '',
     celular: '',
-    correo: ''
+    correo: '',
+    metodo_pago: 'efectivo',
   });
 
   const t = {
@@ -23,12 +24,20 @@ export function ReservationFlow({ lang, stand, onBack }) {
       id: 'Cédula',
       phone: 'Celular',
       email: 'Correo electrónico',
+      namePlaceholder: 'Ej. María González',
+      idPlaceholder: '8-000-0000',
+      phonePlaceholder: '+507 6000-0000',
+      emailPlaceholder: 'maria@ejemplo.com',
+      summary: 'Resumen de Reserva',
+      price: 'Precio',
+      disclaimer: '* Al enviar la solicitud, el stand quedará marcado como "Pendiente" por 24 horas mientras se valida el pago.',
+      paymentMethod: 'Método de pago',
       submit: 'Enviar solicitud',
       successTitle: '¡Solicitud enviada!',
       successMsg: 'Hemos recibido tu solicitud para el stand',
       successNext: 'Un asesor te contactará por WhatsApp para validar tus datos y coordinar el pago.',
       whatsapp: 'Continuar en WhatsApp',
-      backToStart: 'Volver al inicio'
+      backToStart: 'Volver al inicio',
     },
     en: {
       back: 'Back to map',
@@ -39,23 +48,55 @@ export function ReservationFlow({ lang, stand, onBack }) {
       id: 'ID Number',
       phone: 'Phone number',
       email: 'Email address',
+      namePlaceholder: 'e.g. John Smith',
+      idPlaceholder: '0-000-0000',
+      phonePlaceholder: '+1 000-000-0000',
+      emailPlaceholder: 'john@example.com',
+      summary: 'Reservation Summary',
+      price: 'Price',
+      disclaimer: '* Once submitted, the stand will be marked as "Pending" for 24 hours while payment is validated.',
+      paymentMethod: 'Payment method',
       submit: 'Send request',
       successTitle: 'Request sent!',
       successMsg: 'We have received your request for stand',
       successNext: 'An advisor will contact you via WhatsApp to validate your details and coordinate payment.',
       whatsapp: 'Continue on WhatsApp',
-      backToStart: 'Back to start'
+      backToStart: 'Back to start',
     }
   }[lang];
+
+  function buildWhatsAppURL() {
+    const tierNombre = stand.tiers?.nombre ?? '';
+    const tierLetra  = tierNombre.split(' ')[1] ?? tierNombre;
+    const metodo     = formData.metodo_pago === 'yappi' ? 'Yappi' : 'Efectivo';
+    const msg = lang === 'es'
+      ? `*Nueva Solicitud de Reserva*\n\n` +
+        `📍 *Stand:* ${stand.nombre} (${tierNombre})\n` +
+        `💰 *Precio:* $${stand.tiers?.precio} USD\n` +
+        `💳 *Método de pago:* ${metodo}\n\n` +
+        `👤 *Datos del solicitante:*\n` +
+        `• Nombre: ${formData.nombre}\n` +
+        `• Cédula: ${formData.cedula}\n` +
+        `• Celular: ${formData.celular}\n` +
+        `• Correo: ${formData.correo}`
+      : `*New Reservation Request*\n\n` +
+        `📍 *Stand:* ${stand.nombre} (${tierNombre})\n` +
+        `💰 *Price:* $${stand.tiers?.precio} USD\n` +
+        `💳 *Payment method:* ${metodo}\n\n` +
+        `👤 *Applicant details:*\n` +
+        `• Name: ${formData.nombre}\n` +
+        `• ID: ${formData.cedula}\n` +
+        `• Phone: ${formData.celular}\n` +
+        `• Email: ${formData.correo}`;
+    return `https://wa.me/50765247842?text=${encodeURIComponent(msg)}`;
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
     setLoading(true);
     try {
-      await createReservation({
-        stand_id: stand.id,
-        ...formData
-      });
+      await createReservation({ stand_id: stand.id, ...formData });
+      window.open(buildWhatsAppURL(), '_blank');
       setStep('success');
     } catch (error) {
       alert(error.message);
@@ -76,8 +117,7 @@ export function ReservationFlow({ lang, stand, onBack }) {
             {t.successMsg} <strong>{stand.nombre}</strong>. {t.successNext}
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <CSButton variant="whatsapp" size="lg" full icon={<Icons.Phone size={18} />}>{t.whatsapp}</CSButton>
-            <CSButton variant="ghost" full onClick={() => window.location.reload()}>{t.backToStart}</CSButton>
+            <CSButton variant="primary" size="lg" full onClick={() => window.location.reload()}>{t.backToStart}</CSButton>
           </div>
         </CSCard>
       </div>
@@ -100,19 +140,47 @@ export function ReservationFlow({ lang, stand, onBack }) {
 
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
               <CSField label={t.name} required>
-                <CSInput icon={<Icons.User size={16} />} placeholder="Ej. María González" value={formData.nombre} onChange={e => setFormData({...formData, nombre: e.target.value})} required />
+                <CSInput icon={<Icons.User size={16} />} placeholder={t.namePlaceholder} value={formData.nombre} onChange={e => setFormData({...formData, nombre: e.target.value})} required />
               </CSField>
               <CSField label={t.id} required>
-                <CSInput icon={<Icons.CreditCard size={16} />} placeholder="8-000-0000" value={formData.cedula} onChange={e => setFormData({...formData, cedula: e.target.value})} required />
+                <CSInput icon={<Icons.CreditCard size={16} />} placeholder={t.idPlaceholder} value={formData.cedula} onChange={e => setFormData({...formData, cedula: e.target.value})} required />
               </CSField>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                 <CSField label={t.phone} required>
-                  <CSInput icon={<Icons.Phone size={16} />} placeholder="+507 6000-0000" value={formData.celular} onChange={e => setFormData({...formData, celular: e.target.value})} required />
+                  <CSInput icon={<Icons.Phone size={16} />} placeholder={t.phonePlaceholder} value={formData.celular} onChange={e => setFormData({...formData, celular: e.target.value})} required />
                 </CSField>
                 <CSField label={t.email} required>
-                  <CSInput icon={<Icons.Mail size={16} />} placeholder="maria@ejemplo.com" type="email" value={formData.correo} onChange={e => setFormData({...formData, correo: e.target.value})} required />
+                  <CSInput icon={<Icons.Mail size={16} />} placeholder={t.emailPlaceholder} type="email" value={formData.correo} onChange={e => setFormData({...formData, correo: e.target.value})} required />
                 </CSField>
               </div>
+              <CSField label={t.paymentMethod}>
+                <div style={{ display: 'flex', gap: 12, marginTop: 4 }}>
+                  {['efectivo', 'yappi'].map(method => {
+                    const active = formData.metodo_pago === method;
+                    const label = method === 'efectivo' ? 'Efectivo' : 'Yappi';
+                    return (
+                      <label key={method} style={{
+                        flex: 1, display: 'flex', alignItems: 'center', gap: 10,
+                        padding: '12px 16px', borderRadius: T.r2, cursor: 'pointer',
+                        border: `2px solid ${active ? T.accent : T.border}`,
+                        background: active ? T.accentSoft : '#fff',
+                        transition: 'all 0.15s',
+                      }}>
+                        <input
+                          type="radio"
+                          name="metodo_pago"
+                          value={method}
+                          checked={active}
+                          onChange={() => setFormData({ ...formData, metodo_pago: method })}
+                          style={{ accentColor: T.accent, width: 16, height: 16 }}
+                        />
+                        <span style={{ fontWeight: 600, fontSize: 14, color: active ? T.accentDark : T.text }}>{label}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </CSField>
+
               <div style={{ marginTop: 12 }}>
                 <CSButton variant="primary" size="lg" full disabled={loading}>{loading ? '...' : t.submit}</CSButton>
               </div>
@@ -120,18 +188,18 @@ export function ReservationFlow({ lang, stand, onBack }) {
           </div>
 
           <CSCard padding={24} style={{ border: `1px solid ${T.accentBorder}`, background: T.accentSoft + '40' }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: T.accent, marginBottom: 16 }}>Resumen de Reserva</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: T.accent, marginBottom: 16 }}>{t.summary}</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: 20, fontWeight: 700 }}>Stand {stand.nombre.split(' ')[1]}</span>
                 <CSBadge tier={stand.tier}>{stand.tiers?.nombre}</CSBadge>
               </div>
               <div style={{ padding: '12px 0', borderTop: `1px solid ${T.accentBorder}`, borderBottom: `1px solid ${T.accentBorder}`, display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: T.textMuted }}>Precio</span>
+                <span style={{ color: T.textMuted }}>{t.price}</span>
                 <span style={{ fontWeight: 700 }}>${stand.tiers?.precio} USD</span>
               </div>
               <div style={{ fontSize: 12, color: T.textMuted, lineHeight: 1.5 }}>
-                * Al enviar la solicitud, el stand quedará marcado como "Pendiente" por 24 horas mientras se valida el pago.
+                {t.disclaimer}
               </div>
             </div>
           </CSCard>

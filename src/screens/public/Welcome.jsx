@@ -1,20 +1,24 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { T } from '../../theme/tokens';
 import { CSCard, CSButton, CSLogo } from '../../components/UI';
 
 export function Welcome({ lang, setLang, onStart }) {
+  const navigate = useNavigate();
   const content = {
     es: {
       welcome: 'Bienvenido',
       selectLanguage: 'Selecciona tu idioma para continuar',
       start: 'Comenzar reserva',
-      langName: 'Español'
+      admin: 'Acceso Administrador',
+      footer: 'Expo Emprende · Chiriquistorage',
     },
     en: {
       welcome: 'Welcome',
       selectLanguage: 'Select your language to continue',
       start: 'Start reservation',
-      langName: 'English'
+      admin: 'Admin Access',
+      footer: 'Expo Emprende · Chiriquistorage',
     }
   };
 
@@ -67,10 +71,25 @@ export function Welcome({ lang, setLang, onStart }) {
           <CSButton variant="primary" size="lg" full onClick={onStart} style={{ height: 60, fontSize: 18, borderRadius: 18 }}>
             {t.start}
           </CSButton>
+
+          <button
+            onClick={() => navigate('/admin/login', { replace: true })}
+            style={{
+              marginTop: 12, width: '100%', padding: '12px',
+              background: 'transparent', border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: 14, color: 'rgba(255,255,255,0.4)', fontSize: 13,
+              fontWeight: 500, cursor: 'pointer', transition: 'all 0.2s',
+              fontFamily: T.font,
+            }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)'; e.currentTarget.style.color = 'rgba(255,255,255,0.7)'; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = 'rgba(255,255,255,0.4)'; }}
+          >
+            {t.admin}
+          </button>
         </CSCard>
         
         <div style={{ marginTop: 32, fontSize: 12, color: 'rgba(255,255,255,0.3)', letterSpacing: 1, textTransform: 'uppercase', fontWeight: 600 }}>
-          Expo Emprende · Chiriquistorage
+          {t.footer}
         </div>
       </div>
     </div>

@@ -52,12 +52,9 @@ export function Dashboard() {
 
   return (
     <div style={{ padding: 32 }}>
-      <header style={{ marginBottom: 32, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-        <div>
-          <h1 style={{ fontSize: 28, fontWeight: 700, margin: 0 }}>Dashboard</h1>
-          <p style={{ color: T.textMuted, marginTop: 4 }}>Resumen de {event?.nombre}</p>
-        </div>
-        <CSButton variant="primary" icon={<Icons.Plus size={16} />}>Nueva Reserva</CSButton>
+      <header style={{ marginBottom: 32 }}>
+        <h1 style={{ fontSize: 28, fontWeight: 700, margin: 0 }}>Dashboard</h1>
+        <p style={{ color: T.textMuted, marginTop: 4 }}>Resumen general del evento activo: <strong style={{ color: T.text }}>{event?.nombre}</strong></p>
       </header>
 
       {/* Stats Grid */}

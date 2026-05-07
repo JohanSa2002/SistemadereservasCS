@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { T, STATUS, TIERS } from '../theme/tokens';
-import { Check, X, Search, Download, Plus, Edit, User, Phone, Mail, CreditCard, ArrowRight, Calendar, Filter, FileDown, RefreshCw, MapPin, Shield } from 'lucide-react';
+import { Check, X, Search, Download, Plus, Edit, User, Phone, Mail, CreditCard, ArrowRight, Calendar, Filter, FileDown, RefreshCw, MapPin, Shield, Layers } from 'lucide-react';
 
 export function CSButton({ children, variant = 'primary', size = 'md', icon, full, onClick, style = {}, disabled }) {
   const sizes = {
@@ -122,5 +122,5 @@ export function CSLogo({ size = 16, color = T.text }) {
 }
 
 export const Icons = {
-  Check, X, Search, Download, Plus, Edit, User, Phone, Mail, CreditCard, ArrowRight, Calendar, Filter, FileDown, RefreshCw, MapPin, Shield
+  Check, X, Search, Download, Plus, Edit, User, Phone, Mail, CreditCard, ArrowRight, Calendar, Filter, FileDown, RefreshCw, MapPin, Shield, Layers
 };

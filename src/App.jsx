@@ -7,6 +7,8 @@ import { AdminLayout } from './screens/admin/AdminLayout';
 import { Dashboard } from './screens/admin/Dashboard';
 import { AdminMap } from './screens/admin/AdminMap';
 import { Tiers } from './screens/admin/Tiers';
+import { Cycles } from './screens/admin/Cycles';
+import { Export } from './screens/admin/Export';
 import { Login } from './screens/admin/Login';
 
 // Public Screens
@@ -41,7 +43,7 @@ export default function App() {
       return <Welcome lang={lang} setLang={setLang} onStart={() => setPublicStep('map')} />;
     }
     if (publicStep === 'map') {
-      return <PublicMap lang={lang} onSelectStand={(stand) => { setSelectedStand(stand); setPublicStep('form'); }} />;
+      return <PublicMap lang={lang} onSelectStand={(stand) => { setSelectedStand(stand); setPublicStep('form'); }} onBack={() => setPublicStep('welcome')} />;
     }
     if (publicStep === 'form') {
       return <ReservationFlow lang={lang} stand={selectedStand} onBack={() => setPublicStep('map')} />;
@@ -61,8 +63,8 @@ export default function App() {
         <Route path="/admin" element={session ? <AdminLayout><Dashboard /></AdminLayout> : <Navigate to="/admin/login" />} />
         <Route path="/admin/map" element={session ? <AdminLayout><AdminMap /></AdminLayout> : <Navigate to="/admin/login" />} />
         <Route path="/admin/tiers" element={session ? <AdminLayout><Tiers /></AdminLayout> : <Navigate to="/admin/login" />} />
-        <Route path="/admin/cycles" element={session ? <AdminLayout><div style={{padding:32}}><h1>Ciclos</h1><p>Próximamente...</p></div></AdminLayout> : <Navigate to="/admin/login" />} />
-        <Route path="/admin/export" element={session ? <AdminLayout><div style={{padding:32}}><h1>Exportar</h1><p>Próximamente...</p></div></AdminLayout> : <Navigate to="/admin/login" />} />
+        <Route path="/admin/cycles" element={session ? <AdminLayout><Cycles /></AdminLayout> : <Navigate to="/admin/login" />} />
+        <Route path="/admin/export" element={session ? <AdminLayout><Export /></AdminLayout> : <Navigate to="/admin/login" />} />
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" />} />

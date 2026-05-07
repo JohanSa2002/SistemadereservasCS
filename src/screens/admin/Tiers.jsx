@@ -61,11 +61,11 @@ export function Tiers() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
               {editingId === tier.id ? (
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <CSInput 
-                    type="number" 
-                    value={newPrice} 
-                    onChange={e => setNewPrice(e.target.value)} 
-                    style={{ width: 120, textAlign: 'right' }} 
+                  <CSInput
+                    inputMode="decimal"
+                    value={newPrice}
+                    onChange={e => setNewPrice(e.target.value.replace(/[^0-9.]/g, ''))}
+                    style={{ width: 120, textAlign: 'right' }}
                     placeholder="0.00"
                   />
                   <CSButton variant="primary" size="sm" onClick={() => handleUpdatePrice(tier.id)}>Guardar</CSButton>
@@ -75,7 +75,7 @@ export function Tiers() {
                 <>
                   <div style={{ textAlign: 'right' }}>
                     <div style={{ fontSize: 24, fontWeight: 700, color: tier.color }}>${tier.precio}</div>
-                    <div style={{ fontSize: 12, color: T.textMuted }}>USD / Ciclo</div>
+                    <div style={{ fontSize: 12, color: T.textMuted }}>USD / Evento</div>
                   </div>
                   <CSButton variant="secondary" icon={<Icons.Edit size={14} />} onClick={() => {
                     setEditingId(tier.id);

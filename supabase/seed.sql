@@ -32,16 +32,20 @@ BEGIN
       v_x := 20 + (v_col * 56);
       v_y := 40 + (v_row * 64);
       
-      INSERT INTO public.stands (event_id, tier_id, nombre, svg_id, status)
+      INSERT INTO public.stands (event_id, tier_id, nombre, svg_id, x, y, w, h, status)
       VALUES (
         v_event_id,
-        CASE 
+        CASE
           WHEN v_row = 0 OR v_col = 0 OR v_col = 11 THEN v_tier_a
           WHEN v_row = 2 THEN v_tier_b
           ELSE v_tier_c
         END,
         'Stand ' || v_stand_idx,
         'stand-' || v_stand_idx,
+        v_x,
+        v_y,
+        50,
+        54,
         'available'
       );
       
