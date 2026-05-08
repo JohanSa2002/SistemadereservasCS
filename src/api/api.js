@@ -335,6 +335,62 @@ export async function getReservationsForExport(eventId, statusFilter = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
+// HISTORIAL DE EXPORTACIONES PDF
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Guarda un registro de reporte PDF generado.
+ *
+ * @param {{ event_id, event_nombre, filter_status, reservation_count, confirmed_count, revenue }} record
+ */
+export async function saveExportRecord({ event_id, event_nombre, filter_status = null, reservation_count, confirmed_count, revenue }) {
+  const { data: { session } } = await supabase.auth.getSession();
+
+  const { error } = await supabase.from('pdf_exports').insert({
+    event_id,
+    event_nombre,
+    filter_status:     filter_status ?? null,
+    reservation_count,
+    confirmed_count,
+    revenue,
+    generated_by: session?.user?.id ?? null,
+  });
+
+  throwIfError(error, 'Error al guardar registro de exportación');
+}
+
+/**
+ * Obtiene el historial de exportaciones PDF, ordenado del más reciente al más antiguo.
+ *
+ * @param {number} limit - Máximo de registros a devolver (default 50)
+ * @returns {Array} Registros de exportación
+ */
+export async function getExportHistory(limit = 50) {
+  const { data, error } = await supabase
+    .from('pdf_exports')
+    .select('*')
+    .order('generated_at', { ascending: false })
+    .limit(limit);
+
+  throwIfError(error, 'Error al obtener historial de exportaciones');
+  return data;
+}
+
+/**
+ * Elimina un registro del historial de exportaciones.
+ *
+ * @param {string} exportId - UUID del registro a eliminar
+ */
+export async function deleteExportRecord(exportId) {
+  const { error } = await supabase
+    .from('pdf_exports')
+    .delete()
+    .eq('id', exportId);
+
+  throwIfError(error, 'Error al eliminar registro de exportación');
+}
+
+// ─────────────────────────────────────────────────────────────
 // TIEMPO REAL
 // ─────────────────────────────────────────────────────────────
 

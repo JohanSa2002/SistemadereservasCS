@@ -28,9 +28,10 @@ export function Tiers() {
   async function handleUpdatePrice(id) {
     if (!newPrice || isNaN(newPrice)) return;
     try {
-      await updateTierPrice(id, parseFloat(newPrice));
+      const price = parseFloat(newPrice);
+      await updateTierPrice(id, price);
+      setTiers(prev => prev.map(t => t.id === id ? { ...t, precio: price } : t));
       setEditingId(null);
-      loadData();
     } catch (error) {
       alert(error.message);
     }

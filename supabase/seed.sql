@@ -4,6 +4,57 @@
 -- Genera un evento activo y 60 stands automáticamente.
 -- ============================================================
 
+-- 0. Crear usuario administrador de prueba
+--    Credenciales: admin@standly.pa / admin1234
+INSERT INTO auth.users (
+  id, instance_id, aud, role, email, encrypted_password, email_confirmed_at,
+  raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
+  is_super_admin, 
+  confirmation_token, recovery_token, email_change_token_new, email_change,
+  phone, phone_change, phone_change_token, email_change_token_current, reauthentication_token
+)
+VALUES (
+  '00000000-0000-0000-0000-000000000001',
+  '00000000-0000-0000-0000-000000000000',
+  'authenticated',
+  'authenticated',
+  'admin@standly.pa',
+  crypt('admin1234', gen_salt('bf')),
+  now(),
+  '{"provider":"email","providers":["email"]}',
+  '{}',
+  now(),
+  now(),
+  false,
+  '', '', '', '', '1234567890', '', '', '', ''
+)
+ON CONFLICT (id) DO NOTHING;
+
+--    Credenciales: admin@gmail.com / 12345678
+INSERT INTO auth.users (
+  id, instance_id, aud, role, email, encrypted_password, email_confirmed_at,
+  raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
+  is_super_admin, 
+  confirmation_token, recovery_token, email_change_token_new, email_change,
+  phone, phone_change, phone_change_token, email_change_token_current, reauthentication_token
+)
+VALUES (
+  '00000000-0000-0000-0000-000000000002',
+  '00000000-0000-0000-0000-000000000000',
+  'authenticated',
+  'authenticated',
+  'admin@gmail.com',
+  crypt('12345678', gen_salt('bf')),
+  now(),
+  '{"provider":"email","providers":["email"]}',
+  '{}',
+  now(),
+  now(),
+  false,
+  '', '', '', '', '0987654321', '', '', '', ''
+)
+ON CONFLICT (id) DO NOTHING;
+
 -- 1. Crear evento activo
 INSERT INTO public.events (nombre, fecha, activo)
 VALUES ('Expo Emprende Local', CURRENT_DATE + INTERVAL '30 days', true);
