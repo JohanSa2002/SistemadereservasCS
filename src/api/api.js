@@ -343,18 +343,23 @@ export async function getReservationsForExport(eventId, statusFilter = null) {
  *
  * @param {{ event_id, event_nombre, filter_status, reservation_count, confirmed_count, revenue }} record
  */
-export async function saveExportRecord({ event_id, event_nombre, filter_status = null, reservation_count, confirmed_count, revenue }) {
+export async function saveExportRecord({ event_id, event_nombre, event_fecha = null, filter_status = null, reservation_count, confirmed_count, revenue }) {
   const { data: { session } } = await supabase.auth.getSession();
 
-  const { error } = await supabase.from('pdf_exports').insert({
-    event_id,
-    event_nombre,
-    filter_status:     filter_status ?? null,
-    reservation_count,
-    confirmed_count,
-    revenue,
-    generated_by: session?.user?.id ?? null,
-  });
+  const { error } = await supabase.from('pdf_exports').upsert(
+    {
+      event_id,
+      event_nombre,
+      event_fecha:       event_fecha ?? null,
+      filter_status:     filter_status ?? null,
+      reservation_count,
+      confirmed_count,
+      revenue,
+      generated_at:  new Date().toISOString(),
+      generated_by:  session?.user?.id ?? null,
+    },
+    { onConflict: 'event_id' }
+  );
 
   throwIfError(error, 'Error al guardar registro de exportación');
 }

@@ -52,6 +52,8 @@ export function AdminMap() {
   }
 
   async function handleTierChange(tierId) {
+    const newTier = tiers.find(t => t.id === tierId);
+    if (!confirm(`¿Estás seguro de cambiar la categoría de ${selected.nombre} a ${newTier?.nombre}?`)) return;
     try {
       await updateStandTier(selected.id, tierId);
       await loadData();

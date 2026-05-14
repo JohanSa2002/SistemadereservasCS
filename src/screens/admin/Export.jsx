@@ -265,6 +265,7 @@ export function Export() {
       await saveExportRecord({
         event_id:          event.id,
         event_nombre:      event.nombre,
+        event_fecha:       event.fecha ?? null,
         filter_status:     filter,
         reservation_count: filtered.length,
         confirmed_count:   confirmed.length,
@@ -278,22 +279,11 @@ export function Export() {
     }
   }
 
-  async function handleRegenerate(record) {
+  async function handleDownloadFromHistory(record) {
     if (!event) return;
     try {
       const data = await getReservationsForExport(event.id, record.filter_status ?? null);
       openPrintWindow(event, data);
-
-      const confirmed = data.filter(r => r.status === 'confirmed');
-      await saveExportRecord({
-        event_id:          event.id,
-        event_nombre:      event.nombre,
-        filter_status:     record.filter_status,
-        reservation_count: data.length,
-        confirmed_count:   confirmed.length,
-        revenue:           confirmed.reduce((acc, r) => acc + (r.stands?.tiers?.precio ?? 0), 0),
-      });
-      await loadHistory();
     } catch (err) {
       console.error(err);
     }
@@ -465,7 +455,7 @@ export function Export() {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
               <thead>
                 <tr style={{ background: T.surface, borderBottom: `1px solid ${T.border}` }}>
-                  {['Evento', 'Filtro', 'Reservas', 'Confirmados', 'Ingresos', 'Generado', 'Acciones'].map(h => (
+                  {['Nombre', 'Fecha del evento', 'Reservas', 'Confirmados', 'Ingresos', 'PDF'].map(h => (
                     <th key={h} style={{
                       padding: '10px 16px', textAlign: 'left', fontWeight: 600,
                       fontSize: 11, color: T.textMuted, textTransform: 'uppercase', letterSpacing: 0.4,
@@ -481,32 +471,21 @@ export function Export() {
                         {rec.event_nombre}
                       </div>
                     </td>
-                    <td style={{ padding: '12px 16px' }}>
-                      <span style={{
-                        padding: '2px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600,
-                        background: rec.filter_status
-                          ? (STATUS_COLORS[rec.filter_status] + '18')
-                          : T.surface2,
-                        color: rec.filter_status ? STATUS_COLORS[rec.filter_status] : T.textMuted,
-                      }}>
-                        {FILTER_LABELS[rec.filter_status ?? 'null']}
-                      </span>
+                    <td style={{ padding: '12px 16px', color: T.textMuted, fontSize: 13 }}>
+                      {rec.event_fecha ? fmtDate(rec.event_fecha) : '—'}
                     </td>
                     <td style={{ padding: '12px 16px', fontWeight: 700 }}>{rec.reservation_count}</td>
                     <td style={{ padding: '12px 16px', color: T.available, fontWeight: 600 }}>{rec.confirmed_count}</td>
                     <td style={{ padding: '12px 16px', fontWeight: 600 }}>{fmtCurrency(rec.revenue)}</td>
-                    <td style={{ padding: '12px 16px', color: T.textMuted, fontSize: 13 }}>
-                      {fmtDateTime(rec.generated_at)}
-                    </td>
                     <td style={{ padding: '12px 16px' }}>
                       <div style={{ display: 'flex', gap: 6 }}>
                         <CSButton
                           variant="secondary"
                           size="sm"
-                          icon={<RefreshCw size={13} />}
-                          onClick={() => handleRegenerate(rec)}
+                          icon={<FileDown size={13} />}
+                          onClick={() => handleDownloadFromHistory(rec)}
                         >
-                          Re-generar
+                          Descargar PDF
                         </CSButton>
                         <button
                           onClick={() => handleDelete(rec.id)}
