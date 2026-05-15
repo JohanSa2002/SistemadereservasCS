@@ -114,6 +114,14 @@ export async function updateStandTier(standId, tierId) {
   throwIfError(error, 'Error al actualizar tier del stand');
 }
 
+export async function updateStandNombre(standId, nombre) {
+  const { error } = await supabase
+    .from('stands')
+    .update({ nombre })
+    .eq('id', standId);
+  throwIfError(error, 'Error al actualizar el nombre del stand');
+}
+
 export async function updateTierPrice(tierId, precio) {
   const { data, error } = await supabase.rpc('update_tier_price', {
     p_tier_id: tierId,
