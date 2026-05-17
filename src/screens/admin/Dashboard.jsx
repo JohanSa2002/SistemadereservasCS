@@ -104,14 +104,14 @@ export function Dashboard() {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: T.surface, textAlign: 'left', borderBottom: `1px solid ${T.border}` }}>
-                {['Stand', 'Solicitante', 'Contacto', 'Fecha', 'Acciones'].map(h => (
+                {['Stand', 'Solicitante', 'Contacto', 'Pago', 'Fecha', 'Acciones'].map(h => (
                   <th key={h} style={{ padding: '12px 24px', fontSize: 11, fontWeight: 700, color: T.textMuted, textTransform: 'uppercase' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {requests.length === 0 ? (
-                <tr><td colSpan="5" style={{ padding: 40, textAlign: 'center', color: T.textSubtle }}>No hay solicitudes pendientes.</td></tr>
+                <tr><td colSpan="6" style={{ padding: 40, textAlign: 'center', color: T.textSubtle }}>No hay solicitudes pendientes.</td></tr>
               ) : requests.map(req => (
                 <tr key={req.id} style={{ borderBottom: `1px solid ${T.border}` }}>
                   <td style={{ padding: '16px 24px' }}>
@@ -132,6 +132,23 @@ export function Dashboard() {
                   <td style={{ padding: '16px 24px' }}>
                     <div style={{ fontSize: 13 }}>{req.celular}</div>
                     <div style={{ fontSize: 12, color: T.textMuted }}>{req.correo}</div>
+                  </td>
+                  <td style={{ padding: '16px 24px' }}>
+                    <div style={{ marginBottom: 4 }}>
+                      <span style={{
+                        padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 600,
+                        background: T.surface2, color: T.text,
+                      }}>
+                        {req.metodo_pago === 'yappi' ? 'Yappi' : 'Efectivo'}
+                      </span>
+                    </div>
+                    <span style={{
+                      padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 600,
+                      background: req.pago_tipo === 'abono' ? '#FDF1E0' : '#E8F6EC',
+                      color: req.pago_tipo === 'abono' ? '#D97706' : '#16A34A',
+                    }}>
+                      {req.pago_tipo === 'abono' ? 'Abono' : 'Completo'}
+                    </span>
                   </td>
                   <td style={{ padding: '16px 24px', color: T.textMuted, fontSize: 13 }}>
                     {new Date(req.created_at).toLocaleDateString()}

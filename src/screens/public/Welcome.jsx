@@ -1,10 +1,26 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { T } from '../../theme/tokens';
 import { CSCard, CSButton, CSLogo } from '../../components/UI';
+import { getActiveEvent } from '../../api/api';
 
 export function Welcome({ lang, setLang, onStart }) {
   const navigate = useNavigate();
+  const [event, setEvent] = useState(null);
+
+  useEffect(() => {
+    getActiveEvent().then(setEvent).catch(() => {});
+  }, []);
+
+  function fmtExpiracion(ev) {
+    if (!ev?.fecha) return null;
+    const fecha = new Date(ev.fecha + 'T00:00:00').toLocaleDateString(lang === 'es' ? 'es-PA' : 'en-US', {
+      day: '2-digit', month: 'short', year: 'numeric',
+    });
+    const hora = ev.hora_expiracion ? ev.hora_expiracion.slice(0, 5) : null;
+    return hora ? `${fecha} · ${hora}` : fecha;
+  }
+
   const content = {
     es: {
       welcome: 'Bienvenido',
@@ -12,6 +28,8 @@ export function Welcome({ lang, setLang, onStart }) {
       start: 'Comenzar reserva',
       admin: 'Acceso Administrador',
       footer: 'Expo Emprende · Chiriquistorage',
+      eventLabel: 'Evento activo',
+      expires: 'Expira',
     },
     en: {
       welcome: 'Welcome',
@@ -19,6 +37,8 @@ export function Welcome({ lang, setLang, onStart }) {
       start: 'Start reservation',
       admin: 'Admin Access',
       footer: 'Expo Emprende · Chiriquistorage',
+      eventLabel: 'Active event',
+      expires: 'Expires',
     }
   };
 

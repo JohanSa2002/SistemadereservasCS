@@ -182,7 +182,7 @@ export async function releaseStand(standId) {
  * @returns {{ ok: true, reservation_id: string }}
  * @throws Si el stand ya no está disponible o la cédula ya tiene reserva
  */
-export async function createReservation({ stand_id, nombre, cedula, celular, correo, metodo_pago = 'efectivo' }) {
+export async function createReservation({ stand_id, nombre, cedula, celular, correo, metodo_pago = 'efectivo', pago_tipo = 'completo' }) {
   const { data, error } = await supabase.rpc('create_reservation', {
     p_stand_id:    stand_id,
     p_nombre:      nombre,
@@ -190,6 +190,7 @@ export async function createReservation({ stand_id, nombre, cedula, celular, cor
     p_celular:     celular,
     p_correo:      correo,
     p_metodo_pago: metodo_pago,
+    p_pago_tipo:   pago_tipo,
   });
 
   throwIfError(error, 'Error al crear la reserva');
@@ -210,7 +211,7 @@ export async function getPendingReservations() {
   const { data, error } = await supabase
     .from('reservations')
     .select(`
-      id, nombre, cedula, celular, correo, status, created_at,
+      id, nombre, cedula, celular, correo, metodo_pago, pago_tipo, status, created_at,
       stands ( id, nombre, svg_id,
         tiers ( nombre, color, precio )
       )
@@ -285,10 +286,11 @@ export async function manualReservation({ stand_id, nombre, cedula, celular, cor
  * @param {string} fecha  - Fecha en formato 'YYYY-MM-DD'
  * @returns {{ ok: true, event_id, nombre, fecha }}
  */
-export async function startNewCycle(nombre, fecha) {
+export async function startNewCycle(nombre, fecha, hora_expiracion = '23:59:00') {
   const { data, error } = await supabase.rpc('start_new_cycle', {
-    p_nombre: nombre,
-    p_fecha:  fecha,
+    p_nombre:          nombre,
+    p_fecha:           fecha,
+    p_hora_expiracion: hora_expiracion,
   });
 
   throwIfError(error, 'Error al iniciar nuevo ciclo');
@@ -325,7 +327,7 @@ export async function getReservationsForExport(eventId, statusFilter = null) {
   let query = supabase
     .from('reservations')
     .select(`
-      id, nombre, cedula, celular, correo, status, created_at,
+      id, nombre, cedula, celular, correo, status, pago_tipo, created_at,
       stands ( nombre, svg_id,
         tiers ( nombre, precio, color )
       )

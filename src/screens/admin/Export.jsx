@@ -75,6 +75,7 @@ function buildPrintHTML(event, reservations) {
             <th>Cédula</th>
             <th>Celular</th>
             <th>Correo</th>
+            <th>Pago</th>
             <th>Estado</th>
             <th>Fecha</th>
           </tr>
@@ -87,6 +88,7 @@ function buildPrintHTML(event, reservations) {
               <td class="mono">${r.cedula}</td>
               <td class="mono">${r.celular}</td>
               <td class="muted">${r.correo}</td>
+              <td>${r.pago_tipo === 'abono' ? 'Abono' : 'Completo'}</td>
               <td>${statusBadge(r.status)}</td>
               <td class="muted">${fmtDate(r.created_at)}</td>
             </tr>
@@ -290,11 +292,11 @@ export function Export() {
 
   function exportCSV() {
     const rows = [
-      ['Stand', 'Categoría', 'Nombre', 'Cédula', 'Celular', 'Correo', 'Estado', 'Fecha'],
+      ['Stand', 'Nombre', 'Cédula', 'Celular', 'Correo', 'Pago', 'Estado', 'Fecha'],
       ...filtered.map(r => [
         r.stands?.nombre ?? '',
-        r.stands?.tiers?.nombre ?? '',
         r.nombre, r.cedula, r.celular, r.correo,
+        r.pago_tipo === 'abono' ? 'Abono' : 'Completo',
         STATUS_LABELS[r.status] ?? r.status,
         new Date(r.created_at).toLocaleDateString('es-PA'),
       ])
@@ -363,7 +365,7 @@ export function Export() {
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
           <thead>
             <tr style={{ background: T.surface, borderBottom: `1px solid ${T.border}` }}>
-              {['Stand', 'Categoría', 'Nombre', 'Cédula', 'Celular', 'Correo', 'Estado', 'Fecha'].map(h => (
+              {['Stand', 'Nombre', 'Cédula', 'Celular', 'Correo', 'Pago', 'Estado', 'Fecha'].map(h => (
                 <th key={h} style={{
                   padding: '12px 16px', textAlign: 'left', fontWeight: 600,
                   fontSize: 12, color: T.textMuted, textTransform: 'uppercase', letterSpacing: 0.5,
@@ -381,11 +383,19 @@ export function Export() {
             ) : filtered.map(r => (
               <tr key={r.id} style={{ borderBottom: `1px solid ${T.border}` }}>
                 <td style={{ padding: '12px 16px', fontWeight: 600 }}>{r.stands?.nombre}</td>
-                <td style={{ padding: '12px 16px', color: T.textMuted }}>{r.stands?.tiers?.nombre}</td>
                 <td style={{ padding: '12px 16px' }}>{r.nombre}</td>
                 <td style={{ padding: '12px 16px', fontFamily: 'monospace', fontSize: 13 }}>{r.cedula}</td>
                 <td style={{ padding: '12px 16px', fontFamily: 'monospace', fontSize: 13 }}>{r.celular}</td>
                 <td style={{ padding: '12px 16px', color: T.textMuted }}>{r.correo}</td>
+                <td style={{ padding: '12px 16px' }}>
+                  <span style={{
+                    padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600,
+                    background: r.pago_tipo === 'abono' ? '#FDF1E0' : '#E8F6EC',
+                    color: r.pago_tipo === 'abono' ? '#D97706' : '#16A34A',
+                  }}>
+                    {r.pago_tipo === 'abono' ? 'Abono' : 'Completo'}
+                  </span>
+                </td>
                 <td style={{ padding: '12px 16px' }}>
                   <span style={{
                     padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600,

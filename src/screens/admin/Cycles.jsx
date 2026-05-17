@@ -10,6 +10,7 @@ export function Cycles() {
   const [saving, setSaving] = useState(false);
   const [nombre, setNombre] = useState('');
   const [fecha, setFecha] = useState('');
+  const [hora, setHora] = useState('23:59');
   const [result, setResult] = useState(null);
 
   useEffect(() => {
@@ -21,15 +22,16 @@ export function Cycles() {
 
   async function handleStart(e) {
     e.preventDefault();
-    if (!nombre.trim() || !fecha) return;
+    if (!nombre.trim() || !fecha || !hora) return;
     setSaving(true);
     setResult(null);
     try {
-      const data = await startNewCycle(nombre.trim(), fecha);
+      const data = await startNewCycle(nombre.trim(), fecha, hora + ':00');
       setResult({ ok: true, mensaje: `Nuevo evento "${data.nombre}" iniciado para el ${data.fecha}.` });
-      setActiveEvent({ nombre: data.nombre, fecha: data.fecha });
+      setActiveEvent({ nombre: data.nombre, fecha: data.fecha, hora_expiracion: data.hora_expiracion });
       setNombre('');
       setFecha('');
+      setHora('23:59');
     } catch (err) {
       setResult({ ok: false, mensaje: err.message });
     } finally {
@@ -54,7 +56,12 @@ export function Cycles() {
           <div>
             <div style={{ fontSize: 12, fontWeight: 600, color: T.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 }}>Evento activo</div>
             <div style={{ fontSize: 16, fontWeight: 700 }}>{activeEvent.nombre}</div>
-            {activeEvent.fecha && <div style={{ fontSize: 13, color: T.textMuted }}>{activeEvent.fecha}</div>}
+            {activeEvent.fecha && (
+              <div style={{ fontSize: 13, color: T.textMuted }}>
+                Expira: {new Date(activeEvent.fecha + 'T00:00:00').toLocaleDateString('es-PA', { day: '2-digit', month: 'short', year: 'numeric' })}
+                {activeEvent.hora_expiracion && ` a las ${activeEvent.hora_expiracion.slice(0, 5)}`}
+              </div>
+            )}
           </div>
         </CSCard>
       )}
@@ -77,14 +84,24 @@ export function Cycles() {
               required
             />
           </CSField>
-          <CSField label="Fecha del evento">
-            <CSInput
-              type="date"
-              value={fecha}
-              onChange={e => setFecha(e.target.value)}
-              required
-            />
-          </CSField>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <CSField label="Fecha de expiración">
+              <CSInput
+                type="date"
+                value={fecha}
+                onChange={e => setFecha(e.target.value)}
+                required
+              />
+            </CSField>
+            <CSField label="Hora de expiración">
+              <CSInput
+                type="time"
+                value={hora}
+                onChange={e => setHora(e.target.value)}
+                required
+              />
+            </CSField>
+          </div>
 
           {result && (
             <div style={{
@@ -97,7 +114,7 @@ export function Cycles() {
             </div>
           )}
 
-          <CSButton variant="primary" size="lg" disabled={saving || !nombre.trim() || !fecha}>
+          <CSButton variant="primary" size="lg" disabled={saving || !nombre.trim() || !fecha || !hora}>
             {saving ? 'Iniciando...' : 'Iniciar nuevo evento'}
           </CSButton>
         </form>

@@ -121,7 +121,7 @@ export function ReservationFlow({ lang, stand, onBack }) {
     e.preventDefault();
     setLoading(true);
     try {
-      await createReservation({ stand_id: stand.id, ...formData });
+      await createReservation({ stand_id: stand.id, ...formData, pago_tipo: pagoTipo === 'total' ? 'completo' : 'abono' });
       window.open(buildWhatsAppURL(), '_blank');
       setStep('success');
     } catch (error) {

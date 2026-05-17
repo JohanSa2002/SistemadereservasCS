@@ -76,8 +76,23 @@ export function PublicMap({ lang, onSelectStand, onBack }) {
           </div>
           <div>
             <h1 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>{t.title}</h1>
-            <p style={{ fontSize: 12, color: T.textMuted, margin: 0 }}>{event?.nombre}</p>
           </div>
+          {event && (
+            <div style={{
+              display: 'flex', flexDirection: 'column',
+              padding: '6px 12px', borderRadius: 8,
+              background: T.accentSoft + '50', border: `1px solid ${T.accentBorder}`,
+              lineHeight: 1.3,
+            }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: T.accentDark }}>{event.nombre}</span>
+              {event.fecha && (
+                <span style={{ fontSize: 11, color: T.textMuted }}>
+                  {lang === 'es' ? 'Expira' : 'Expires'}: {new Date(event.fecha + 'T00:00:00').toLocaleDateString(lang === 'es' ? 'es-PA' : 'en-US', { day: '2-digit', month: 'short', year: 'numeric' })}
+                  {event.hora_expiracion ? ` · ${event.hora_expiracion.slice(0, 5)}` : ''}
+                </span>
+              )}
+            </div>
+          )}
         </div>
         <Legend tiers={tiers} lang={lang} />
       </header>
