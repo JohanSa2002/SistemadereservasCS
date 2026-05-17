@@ -36,16 +36,44 @@ export function Dashboard() {
     }
   }
 
-  async function handleConfirm(id) {
-    if (!confirm('¿Confirmar esta reserva?')) return;
-    await confirmReservation(id);
-    loadData();
+  function buildConfirmationWhatsApp(req) {
+    const phone = req.celular.replace(/\D/g, '');
+    const fullPhone = phone.startsWith('507') ? phone : `507${phone}`;
+    const msg =
+      `*¡Tu reserva ha sido confirmada! ✅*\n\n` +
+      `Hola ${req.nombre}, nos complace informarte que tu solicitud de reserva ha sido *aprobada*.\n\n` +
+      `*Detalles de tu reserva:*\n` +
+      `- Stand: ${req.stands?.nombre}\n` +
+      `- Categoría: ${req.stands?.tiers?.nombre}\n` +
+      `- Precio total: $${req.stands?.tiers?.precio} USD\n\n` +
+      `Si tienes alguna pregunta, no dudes en contactarnos. ¡Gracias!`;
+    return `https://wa.me/${fullPhone}?text=${encodeURIComponent(msg)}`;
+  }
+
+  async function handleConfirm(req) {
+    if (!confirm(`¿Confirmar la reserva de ${req.nombre}?\nSe enviará notificación al: ${req.celular}`)) return;
+    const url = buildConfirmationWhatsApp(req);
+    // Abrir la ventana de forma síncrona (dentro del gesto del usuario)
+    // para evitar que el navegador bloquee el popup tras el await
+    const win = window.open('', '_blank');
+    try {
+      await confirmReservation(req.id);
+      if (win) win.location.href = url;
+      loadData();
+    } catch (err) {
+      if (win) win.close();
+      alert(err.message);
+    }
   }
 
   async function handleReject(id) {
     if (!confirm('¿Rechazar esta reserva? El stand volverá a estar disponible.')) return;
-    await rejectReservation(id);
-    loadData();
+    try {
+      await rejectReservation(id);
+      loadData();
+    } catch (err) {
+      alert(err.message);
+    }
   }
 
   if (loading) return <div style={{ padding: 40 }}>Cargando datos...</div>;
@@ -71,7 +99,7 @@ export function Dashboard() {
           <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>Solicitudes Pendientes</h2>
           <CSBadge status="pending" dot>{requests.length} pendientes</CSBadge>
         </div>
-        
+
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
@@ -88,8 +116,8 @@ export function Dashboard() {
                 <tr key={req.id} style={{ borderBottom: `1px solid ${T.border}` }}>
                   <td style={{ padding: '16px 24px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <div style={{ 
-                        width: 32, height: 32, borderRadius: 8, background: T.surface2, 
+                      <div style={{
+                        width: 32, height: 32, borderRadius: 8, background: T.surface2,
                         display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 12
                       }}>
                         {req.stands?.nombre.split(' ')[1]}
@@ -110,7 +138,7 @@ export function Dashboard() {
                   </td>
                   <td style={{ padding: '16px 24px' }}>
                     <div style={{ display: 'flex', gap: 8 }}>
-                      <CSButton variant="success" size="sm" onClick={() => handleConfirm(req.id)} icon={<Icons.Check size={14} />}>Confirmar</CSButton>
+                      <CSButton variant="success" size="sm" onClick={() => handleConfirm(req)} icon={<Icons.Check size={14} />}>Confirmar</CSButton>
                       <CSButton variant="danger" size="sm" onClick={() => handleReject(req.id)} icon={<Icons.X size={14} />}>Rechazar</CSButton>
                     </div>
                   </td>

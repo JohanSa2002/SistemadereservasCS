@@ -413,17 +413,12 @@ export async function deleteExportRecord(exportId) {
  *
  * @param {string}   eventId  - UUID del evento a observar
  * @param {function} onUpdate - Callback que recibe el stand actualizado
- * @returns Canal de Supabase — llama a channel.unsubscribe() al desmontar
- *
- * @example
- * const channel = subscribeToStands(eventId, (stand) => {
- *   setStands(prev => prev.map(s => s.id === stand.id ? stand : s));
- * });
- * return () => channel.unsubscribe();
+ * @returns Canal de Supabase — llama a supabase.removeChannel(channel) al desmontar
  */
 export function subscribeToStands(eventId, onUpdate) {
+  const channelName = `stands-event-${eventId}-${Math.random().toString(36).substr(2, 9)}`;
   return supabase
-    .channel(`stands-event-${eventId}`)
+    .channel(channelName)
     .on(
       'postgres_changes',
       {

@@ -21,26 +21,41 @@ export function AdminMap() {
 
   useEffect(() => {
     let channel;
+    let isMounted = true;
+
     async function loadData() {
       try {
         setLoading(true);
         const activeEvent = await getActiveEvent();
+        if (!isMounted) return;
         setEvent(activeEvent);
-        const data = await getStandsWithTiers(activeEvent.id);
-        setStands(data);
-        const tiersData = await getTiers();
+        
+        const [standsData, tiersData] = await Promise.all([
+          getStandsWithTiers(activeEvent.id),
+          getTiers()
+        ]);
+        
+        if (!isMounted) return;
+        setStands(standsData);
         setTiers(tiersData);
+
         channel = subscribeToStands(activeEvent.id, (newStand) => {
-          setStands(prev => prev.map(s => s.id === newStand.id ? { ...s, ...newStand } : s));
+          if (isMounted) {
+            setStands(prev => prev.map(s => s.id === newStand.id ? { ...s, ...newStand } : s));
+          }
         });
       } catch (error) {
         console.error('Error loading map data:', error);
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     }
+
     loadData();
-    return () => { if (channel) channel.unsubscribe(); };
+    return () => { 
+      isMounted = false;
+      if (channel) channel.unsubscribe();
+    };
   }, []);
 
   async function loadData() {
@@ -219,7 +234,7 @@ export function AdminMap() {
                           fontWeight: 700, fontSize: 13, cursor: isActive ? 'default' : 'pointer',
                           fontFamily: T.font, transition: 'all 0.15s',
                         }}>
-                          {t.nombre.replace('Tier ', '')}
+                          {t.nombre.replace('Categoría ', '')}
                         </button>
                       );
                     })}

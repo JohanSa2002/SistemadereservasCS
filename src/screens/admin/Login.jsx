@@ -39,7 +39,7 @@ export function Login({ onLogin }) {
             <Icons.ArrowRight size={14} style={{ transform: 'rotate(180deg)' }} />
             Volver
           </button>
-          <CSLogo size={24} />
+          <img src="/logo.png" alt="Logo" style={{ height: 64, objectFit: 'contain' }} />
         </div>
         
         <CSCard padding={32}>

@@ -216,7 +216,7 @@ GRANT EXECUTE ON FUNCTION public.update_tier_price TO authenticated;
 
 -- ── Datos iniciales ──────────────────────────────────────────
 INSERT INTO public.tiers (nombre, color, precio) VALUES
-  ('Tier A', '#7C3AED', 250),
-  ('Tier B', '#0891B2', 175),
-  ('Tier C', '#65A30D', 110)
+  ('Categoría A', '#7C3AED', 250),
+  ('Categoría B', '#0891B2', 175)
 ON CONFLICT DO NOTHING;
+

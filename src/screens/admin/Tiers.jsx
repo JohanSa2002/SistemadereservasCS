@@ -43,7 +43,7 @@ export function Tiers() {
     <div style={{ padding: 32, maxWidth: 800 }}>
       <header style={{ marginBottom: 32 }}>
         <h1 style={{ fontSize: 28, fontWeight: 700, margin: 0 }}>Categorías de Stands</h1>
-        <p style={{ color: T.textMuted, marginTop: 4 }}>Gestiona los precios globales por nivel (Tiers)</p>
+        <p style={{ color: T.textMuted, marginTop: 4 }}>Gestiona los precios globales por categoría</p>
       </header>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>

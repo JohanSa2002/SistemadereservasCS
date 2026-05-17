@@ -28,10 +28,8 @@ export const T = {
   // Tier (categoría de precio)
   tierA: '#7C3AED',
   tierB: '#0891B2',
-  tierC: '#65A30D',
   tierASoft: '#F1EAFE',
   tierBSoft: '#E0F4F8',
-  tierCSoft: '#EDF6DD',
 
   // Type
   font: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif',
@@ -50,9 +48,8 @@ export const T = {
 };
 
 export const TIERS = {
-  A: { id: 'A', name: 'Tier A', subtitle: 'Esquinas premium', price: 250, color: T.tierA, soft: T.tierASoft },
-  B: { id: 'B', name: 'Tier B', subtitle: 'Pasillo principal', price: 175, color: T.tierB, soft: T.tierBSoft },
-  C: { id: 'C', name: 'Tier C', subtitle: 'Estándar', price: 110, color: T.tierC, soft: T.tierCSoft },
+  A: { id: 'A', name: 'Categoría A', subtitle: 'Esquinas premium', price: 250, color: T.tierA, soft: T.tierASoft },
+  B: { id: 'B', name: 'Categoría B', subtitle: 'Pasillo principal', price: 175, color: T.tierB, soft: T.tierBSoft },
 };
 
 export const STATUS = {

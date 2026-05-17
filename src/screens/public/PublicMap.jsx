@@ -112,16 +112,7 @@ export function PublicMap({ lang, onSelectStand, onBack }) {
                 </div>
               </div>
 
-              <CSCard padding={16} style={{ background: T.surface, border: 'none', marginBottom: 32 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: T.textMuted, marginBottom: 8 }}>{t.details}</div>
-                <ul style={{ padding: 0, margin: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  {t.features.map(f => (
-                    <DetailItem key={f} icon={<Icons.Check size={14} />} text={f} />
-                  ))}
-                </ul>
-              </CSCard>
-
-              {selected.status === 'available' ? (
+{selected.status === 'available' ? (
                 <CSButton variant="primary" size="lg" full onClick={() => onSelectStand(selected)}>
                   {t.reserve}
                 </CSButton>

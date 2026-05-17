@@ -45,14 +45,7 @@ function fmtCurrency(n) {
 function buildPrintHTML(event, reservations) {
   const now = fmtDateTime(new Date().toISOString());
 
-  const total     = reservations.length;
-  const confirmed = reservations.filter(r => r.status === 'confirmed').length;
-  const pending   = reservations.filter(r => r.status === 'pending').length;
-  const rejected  = reservations.filter(r => r.status === 'rejected').length;
-  const revenue   = reservations
-    .filter(r => r.status === 'confirmed')
-    .reduce((acc, r) => acc + (r.stands?.tiers?.precio ?? 0), 0);
-
+  const total  = reservations.length;
   const groups = groupByTier(reservations);
 
   const statusBadge = (status) => {
@@ -184,13 +177,6 @@ function buildPrintHTML(event, reservations) {
         <span style="margin-top:4px;display:block;">${total} reserva${total !== 1 ? 's' : ''} en el reporte</span>
       </div>
     </header>
-    <div class="stats-bar">
-      <div class="stat-cell"><div class="stat-label">Total</div><div class="stat-value">${total}</div></div>
-      <div class="stat-cell"><div class="stat-label">Confirmados</div><div class="stat-value green">${confirmed}</div></div>
-      <div class="stat-cell"><div class="stat-label">Por confirmar</div><div class="stat-value amber">${pending}</div></div>
-      <div class="stat-cell"><div class="stat-label">Rechazados</div><div class="stat-value red">${rejected}</div></div>
-      <div class="stat-cell"><div class="stat-label">Ingresos confirmados</div><div class="stat-value blue">${fmtCurrency(revenue)}</div></div>
-    </div>
     ${groupSections}
     <footer class="report-footer">
       <span>Standly &mdash; Sistema de Reservas de Stands</span>
@@ -256,12 +242,13 @@ export function Export() {
   const filtered = filter ? reservations.filter(r => r.status === filter) : reservations;
 
   async function handleGeneratePDF() {
-    if (!event || filtered.length === 0) return;
+    const confirmedOnly = reservations.filter(r => r.status === 'confirmed');
+    if (!event || confirmedOnly.length === 0) return;
     setGeneratingPDF(true);
     try {
-      openPrintWindow(event, filtered);
+      openPrintWindow(event, confirmedOnly);
 
-      const confirmed = filtered.filter(r => r.status === 'confirmed');
+      const confirmed = confirmedOnly;
       await saveExportRecord({
         event_id:          event.id,
         event_nombre:      event.nombre,
@@ -282,7 +269,7 @@ export function Export() {
   async function handleDownloadFromHistory(record) {
     if (!event) return;
     try {
-      const data = await getReservationsForExport(event.id, record.filter_status ?? null);
+      const data = await getReservationsForExport(event.id, 'confirmed');
       openPrintWindow(event, data);
     } catch (err) {
       console.error(err);
@@ -303,7 +290,7 @@ export function Export() {
 
   function exportCSV() {
     const rows = [
-      ['Stand', 'Tier', 'Nombre', 'Cédula', 'Celular', 'Correo', 'Estado', 'Fecha'],
+      ['Stand', 'Categoría', 'Nombre', 'Cédula', 'Celular', 'Correo', 'Estado', 'Fecha'],
       ...filtered.map(r => [
         r.stands?.nombre ?? '',
         r.stands?.tiers?.nombre ?? '',
@@ -376,7 +363,7 @@ export function Export() {
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
           <thead>
             <tr style={{ background: T.surface, borderBottom: `1px solid ${T.border}` }}>
-              {['Stand', 'Tier', 'Nombre', 'Cédula', 'Celular', 'Correo', 'Estado', 'Fecha'].map(h => (
+              {['Stand', 'Categoría', 'Nombre', 'Cédula', 'Celular', 'Correo', 'Estado', 'Fecha'].map(h => (
                 <th key={h} style={{
                   padding: '12px 16px', textAlign: 'left', fontWeight: 600,
                   fontSize: 12, color: T.textMuted, textTransform: 'uppercase', letterSpacing: 0.5,

@@ -27,7 +27,7 @@ export function Welcome({ lang, setLang, onStart }) {
   return (
     <div style={{ 
       height: '100vh', 
-      background: 'linear-gradient(135deg, #1A1816 0%, #332F2B 100%)', 
+      background: '#FFFFFF', 
       display: 'flex', 
       alignItems: 'center', 
       justifyContent: 'center',
@@ -35,24 +35,21 @@ export function Welcome({ lang, setLang, onStart }) {
       position: 'relative',
       overflow: 'hidden'
     }}>
-      <div style={{ position: 'absolute', top: '-10%', right: '-10%', width: '40%', height: '40%', background: T.accent, opacity: 0.15, filter: 'blur(100px)', borderRadius: '50%' }} />
-      <div style={{ position: 'absolute', bottom: '-10%', left: '-10%', width: '40%', height: '40%', background: T.tierA, opacity: 0.1, filter: 'blur(100px)', borderRadius: '50%' }} />
-
       <div style={{ width: '100%', maxWidth: 440, textAlign: 'center', zIndex: 1 }}>
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 32 }}>
-          <CSLogo size={32} color="#fff" />
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
+          <img src="/logo.png" alt="Chiriqui Storage" style={{ height: 160, objectFit: 'contain' }} />
         </div>
         
-        <CSCard style={{ background: 'rgba(255,255,255,0.03)', backdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.1)', padding: 40, borderRadius: 32 }}>
-          <h1 style={{ color: '#fff', fontSize: 32, fontWeight: 700, margin: '0 0 8px 0', letterSpacing: -1 }}>{t.welcome}</h1>
-          <p style={{ color: '#9A968E', fontSize: 16, margin: '0 0 32px 0', lineHeight: 1.5 }}>{t.selectLanguage}</p>
+        <CSCard style={{ background: '#FFFFFF', border: `1px solid ${T.border}`, padding: 40, borderRadius: 32, boxShadow: T.shadow1 }}>
+          <h1 style={{ color: T.text, fontSize: 32, fontWeight: 700, margin: '0 0 8px 0', letterSpacing: -1 }}>{t.welcome}</h1>
+          <p style={{ color: T.textMuted, fontSize: 16, margin: '0 0 32px 0', lineHeight: 1.5 }}>{t.selectLanguage}</p>
 
           <div style={{ display: 'flex', gap: 12, marginBottom: 32 }}>
             <button 
               onClick={() => setLang('es')}
               style={{ 
-                flex: 1, padding: '16px', borderRadius: 16, border: `2px solid ${lang === 'es' ? T.accent : 'rgba(255,255,255,0.1)'}`,
-                background: lang === 'es' ? T.accentSoft + '10' : 'transparent', color: lang === 'es' ? '#fff' : '#9A968E',
+                flex: 1, padding: '16px', borderRadius: 16, border: `2px solid ${lang === 'es' ? T.accent : T.border}`,
+                background: lang === 'es' ? T.accentSoft + '30' : '#FFFFFF', color: lang === 'es' ? T.accentDark : T.textMuted,
                 fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s'
               }}>
               Español
@@ -60,8 +57,8 @@ export function Welcome({ lang, setLang, onStart }) {
             <button 
               onClick={() => setLang('en')}
               style={{ 
-                flex: 1, padding: '16px', borderRadius: 16, border: `2px solid ${lang === 'en' ? T.accent : 'rgba(255,255,255,0.1)'}`,
-                background: lang === 'en' ? T.accentSoft + '10' : 'transparent', color: lang === 'en' ? '#fff' : '#9A968E',
+                flex: 1, padding: '16px', borderRadius: 16, border: `2px solid ${lang === 'en' ? T.accent : T.border}`,
+                background: lang === 'en' ? T.accentSoft + '30' : '#FFFFFF', color: lang === 'en' ? T.accentDark : T.textMuted,
                 fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s'
               }}>
               English
@@ -76,19 +73,19 @@ export function Welcome({ lang, setLang, onStart }) {
             onClick={() => navigate('/admin/login', { replace: true })}
             style={{
               marginTop: 12, width: '100%', padding: '12px',
-              background: 'transparent', border: '1px solid rgba(255,255,255,0.1)',
-              borderRadius: 14, color: 'rgba(255,255,255,0.4)', fontSize: 13,
+              background: 'transparent', border: `1px solid ${T.border}`,
+              borderRadius: 14, color: T.textMuted, fontSize: 13,
               fontWeight: 500, cursor: 'pointer', transition: 'all 0.2s',
               fontFamily: T.font,
             }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)'; e.currentTarget.style.color = 'rgba(255,255,255,0.7)'; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = 'rgba(255,255,255,0.4)'; }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = T.accent; e.currentTarget.style.color = T.accentDark; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.color = T.textMuted; }}
           >
             {t.admin}
           </button>
         </CSCard>
         
-        <div style={{ marginTop: 32, fontSize: 12, color: 'rgba(255,255,255,0.3)', letterSpacing: 1, textTransform: 'uppercase', fontWeight: 600 }}>
+        <div style={{ marginTop: 32, fontSize: 12, color: T.textSubtle, letterSpacing: 1, textTransform: 'uppercase', fontWeight: 600 }}>
           {t.footer}
         </div>
       </div>

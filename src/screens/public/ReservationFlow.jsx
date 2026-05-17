@@ -13,6 +13,8 @@ export function ReservationFlow({ lang, stand, onBack }) {
     correo: '',
     metodo_pago: 'efectivo',
   });
+  const [pagoTipo, setPagoTipo] = useState('total');
+  const [pagoMonto, setPagoMonto] = useState('');
 
   const t = {
     es: {
@@ -32,6 +34,12 @@ export function ReservationFlow({ lang, stand, onBack }) {
       price: 'Precio',
       disclaimer: '* Al enviar la solicitud, el stand quedará marcado como "Pendiente" por 24 horas mientras se valida el pago.',
       paymentMethod: 'Método de pago',
+      cash: 'Efectivo',
+      paymentType: 'Tipo de pago',
+      paymentTotal: 'Pago total',
+      paymentAbono: 'Abono',
+      paymentAmount: 'Monto a pagar',
+      paymentPending: 'Pendiente',
       submit: 'Enviar solicitud',
       successTitle: '¡Solicitud enviada!',
       successMsg: 'Hemos recibido tu solicitud para el stand',
@@ -56,6 +64,12 @@ export function ReservationFlow({ lang, stand, onBack }) {
       price: 'Price',
       disclaimer: '* Once submitted, the stand will be marked as "Pending" for 24 hours while payment is validated.',
       paymentMethod: 'Payment method',
+      cash: 'Cash',
+      paymentType: 'Payment type',
+      paymentTotal: 'Full payment',
+      paymentAbono: 'Partial payment',
+      paymentAmount: 'Amount to pay',
+      paymentPending: 'Remaining',
       submit: 'Send request',
       successTitle: 'Request sent!',
       successMsg: 'We have received your request for stand',
@@ -67,28 +81,40 @@ export function ReservationFlow({ lang, stand, onBack }) {
 
   function buildWhatsAppURL() {
     const tierNombre = stand.tiers?.nombre ?? '';
-    const tierLetra  = tierNombre.split(' ')[1] ?? tierNombre;
-    const metodo     = formData.metodo_pago === 'yappi' ? 'Yappi' : 'Efectivo';
+    const metodo     = formData.metodo_pago === 'yappi' ? 'Yappi' : t.cash;
+    const precio     = stand.tiers?.precio ?? 0;
+    const monto      = pagoTipo === 'total' ? precio : Number(pagoMonto);
+    const pendiente  = precio - monto;
+
+    const pagoLineaEs = pagoTipo === 'total'
+      ? `*Tipo de pago:* Pago total — $${monto} USD`
+      : `*Tipo de pago:* Abono — $${monto} USD (pendiente: $${pendiente} USD)`;
+    const pagoLineaEn = pagoTipo === 'total'
+      ? `*Payment type:* Full payment — $${monto} USD`
+      : `*Payment type:* Partial payment — $${monto} USD (remaining: $${pendiente} USD)`;
+
     const msg = lang === 'es'
       ? `*Nueva Solicitud de Reserva*\n\n` +
-        `📍 *Stand:* ${stand.nombre} (${tierNombre})\n` +
-        `💰 *Precio:* $${stand.tiers?.precio} USD\n` +
-        `💳 *Método de pago:* ${metodo}\n\n` +
-        `👤 *Datos del solicitante:*\n` +
-        `• Nombre: ${formData.nombre}\n` +
-        `• Cédula: ${formData.cedula}\n` +
-        `• Celular: ${formData.celular}\n` +
-        `• Correo: ${formData.correo}`
+        `*Stand:* ${stand.nombre} (${tierNombre})\n` +
+        `*Precio total:* $${precio} USD\n` +
+        `*Método de pago:* ${metodo}\n` +
+        `${pagoLineaEs}\n\n` +
+        `*Datos del solicitante:*\n` +
+        `- Nombre: ${formData.nombre}\n` +
+        `- Cédula: ${formData.cedula}\n` +
+        `- Celular: ${formData.celular}\n` +
+        `- Correo: ${formData.correo}`
       : `*New Reservation Request*\n\n` +
-        `📍 *Stand:* ${stand.nombre} (${tierNombre})\n` +
-        `💰 *Price:* $${stand.tiers?.precio} USD\n` +
-        `💳 *Payment method:* ${metodo}\n\n` +
-        `👤 *Applicant details:*\n` +
-        `• Name: ${formData.nombre}\n` +
-        `• ID: ${formData.cedula}\n` +
-        `• Phone: ${formData.celular}\n` +
-        `• Email: ${formData.correo}`;
-    return `https://wa.me/50765247842?text=${encodeURIComponent(msg)}`;
+        `*Stand:* ${stand.nombre} (${tierNombre})\n` +
+        `*Total price:* $${precio} USD\n` +
+        `*Payment method:* ${metodo}\n` +
+        `${pagoLineaEn}\n\n` +
+        `*Applicant details:*\n` +
+        `- Name: ${formData.nombre}\n` +
+        `- ID: ${formData.cedula}\n` +
+        `- Phone: ${formData.celular}\n` +
+        `- Email: ${formData.correo}`;
+    return `https://wa.me/50768094813?text=${encodeURIComponent(msg)}`;
   }
 
   async function handleSubmit(e) {
@@ -157,7 +183,7 @@ export function ReservationFlow({ lang, stand, onBack }) {
                 <div style={{ display: 'flex', gap: 12, marginTop: 4 }}>
                   {['efectivo', 'yappi'].map(method => {
                     const active = formData.metodo_pago === method;
-                    const label = method === 'efectivo' ? 'Efectivo' : 'Yappi';
+                    const label = method === 'efectivo' ? t.cash : 'Yappi';
                     return (
                       <label key={method} style={{
                         flex: 1, display: 'flex', alignItems: 'center', gap: 10,
@@ -181,8 +207,66 @@ export function ReservationFlow({ lang, stand, onBack }) {
                 </div>
               </CSField>
 
+              {/* Tipo de pago */}
+              <CSField label={t.paymentType}>
+                <div style={{ display: 'flex', gap: 12, marginTop: 4 }}>
+                  {[{ val: 'total', label: t.paymentTotal }, { val: 'abono', label: t.paymentAbono }].map(({ val, label }) => {
+                    const active = pagoTipo === val;
+                    return (
+                      <label key={val} style={{
+                        flex: 1, display: 'flex', alignItems: 'center', gap: 10,
+                        padding: '12px 16px', borderRadius: T.r2, cursor: 'pointer',
+                        border: `2px solid ${active ? T.accent : T.border}`,
+                        background: active ? T.accentSoft : '#fff',
+                        transition: 'all 0.15s',
+                      }}>
+                        <input
+                          type="radio" name="pagoTipo" value={val}
+                          checked={active}
+                          onChange={() => {
+                            setPagoTipo(val);
+                            if (val === 'total') setPagoMonto('');
+                          }}
+                          style={{ accentColor: T.accent, width: 16, height: 16 }}
+                        />
+                        <span style={{ fontWeight: 600, fontSize: 14, color: active ? T.accentDark : T.text }}>{label}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </CSField>
+
+              {pagoTipo === 'abono' && (
+                <CSField label={t.paymentAmount}>
+                  <div style={{ position: 'relative' }}>
+                    <span style={{
+                      position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)',
+                      fontWeight: 600, color: T.textMuted, fontSize: 14, pointerEvents: 'none',
+                    }}>$</span>
+                    <CSInput
+                      type="number" min="1" max={stand.tiers?.precio}
+                      placeholder="0"
+                      value={pagoMonto}
+                      onChange={e => setPagoMonto(e.target.value)}
+                      style={{ paddingLeft: 28 }}
+                      required
+                    />
+                  </div>
+                  {Number(pagoMonto) > 0 && (
+                    <div style={{ fontSize: 12, color: T.textMuted, marginTop: 4 }}>
+                      {t.paymentPending}: ${(stand.tiers?.precio ?? 0) - Number(pagoMonto)} USD
+                    </div>
+                  )}
+                </CSField>
+              )}
+
               <div style={{ marginTop: 12 }}>
-                <CSButton variant="primary" size="lg" full disabled={loading}>{loading ? '...' : t.submit}</CSButton>
+                <CSButton
+                  variant="primary" size="lg" full
+                  disabled={loading || (pagoTipo === 'abono' && (!pagoMonto || Number(pagoMonto) <= 0))}
+                >
+                  {loading ? '...' : t.submit}
+                </CSButton>
               </div>
             </form>
           </div>
