@@ -121,7 +121,12 @@ export function ReservationFlow({ lang, stand, onBack }) {
     e.preventDefault();
     setLoading(true);
     try {
-      await createReservation({ stand_id: stand.id, ...formData, pago_tipo: pagoTipo === 'total' ? 'completo' : 'abono' });
+      await createReservation({
+        stand_id: stand.id,
+        ...formData,
+        pago_tipo:  pagoTipo === 'total' ? 'completo' : 'abono',
+        pago_monto: pagoTipo === 'total' ? null : (Number(pagoMonto) || null),
+      });
       window.open(buildWhatsAppURL(), '_blank');
       setStep('success');
     } catch (error) {
@@ -244,10 +249,15 @@ export function ReservationFlow({ lang, stand, onBack }) {
                       fontWeight: 600, color: T.textMuted, fontSize: 14, pointerEvents: 'none',
                     }}>$</span>
                     <CSInput
-                      type="number" min="1" max={stand.tiers?.precio}
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
                       placeholder="0"
                       value={pagoMonto}
-                      onChange={e => setPagoMonto(e.target.value)}
+                      onChange={e => {
+                        const val = e.target.value.replace(/[^0-9]/g, '');
+                        setPagoMonto(val);
+                      }}
                       style={{ paddingLeft: 28 }}
                       required
                     />

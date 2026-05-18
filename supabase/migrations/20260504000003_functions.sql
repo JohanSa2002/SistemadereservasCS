@@ -83,7 +83,7 @@ EXCEPTION WHEN OTHERS THEN RETURN json_build_object('error', SQLERRM);
 END;
 $$;
 
-GRANT EXECUTE ON FUNCTION public.create_reservation TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.create_reservation(uuid, text, text, text, text, text) TO anon, authenticated;
 
 -- ── 2. confirm_reservation ───────────────────────────────────
 CREATE OR REPLACE FUNCTION public.confirm_reservation(p_reservation_id uuid)
@@ -216,7 +216,7 @@ GRANT EXECUTE ON FUNCTION public.update_tier_price TO authenticated;
 
 -- ── Datos iniciales ──────────────────────────────────────────
 INSERT INTO public.tiers (nombre, color, precio) VALUES
-  ('Categoría A', '#7C3AED', 250),
-  ('Categoría B', '#0891B2', 175)
+  ('Categoría A', '#7C3AED', 15),
+  ('Categoría B', '#0891B2', 11)
 ON CONFLICT DO NOTHING;
 

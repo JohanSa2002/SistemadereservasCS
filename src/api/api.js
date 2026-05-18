@@ -83,6 +83,19 @@ export async function getActiveEvent() {
   return data;
 }
 
+/**
+ * Obtiene todos los eventos ordenados del más reciente al más antiguo.
+ */
+export async function getAllEvents() {
+  const { data, error } = await supabase
+    .from('events')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  throwIfError(error, 'Error al obtener eventos');
+  return data;
+}
+
 // ─────────────────────────────────────────────────────────────
 // TIERS
 // ─────────────────────────────────────────────────────────────
@@ -182,7 +195,7 @@ export async function releaseStand(standId) {
  * @returns {{ ok: true, reservation_id: string }}
  * @throws Si el stand ya no está disponible o la cédula ya tiene reserva
  */
-export async function createReservation({ stand_id, nombre, cedula, celular, correo, metodo_pago = 'efectivo', pago_tipo = 'completo' }) {
+export async function createReservation({ stand_id, nombre, cedula, celular, correo, metodo_pago = 'efectivo', pago_tipo = 'completo', pago_monto = null }) {
   const { data, error } = await supabase.rpc('create_reservation', {
     p_stand_id:    stand_id,
     p_nombre:      nombre,
@@ -191,6 +204,7 @@ export async function createReservation({ stand_id, nombre, cedula, celular, cor
     p_correo:      correo,
     p_metodo_pago: metodo_pago,
     p_pago_tipo:   pago_tipo,
+    p_pago_monto:  pago_monto,
   });
 
   throwIfError(error, 'Error al crear la reserva');
@@ -211,7 +225,7 @@ export async function getPendingReservations() {
   const { data, error } = await supabase
     .from('reservations')
     .select(`
-      id, nombre, cedula, celular, correo, metodo_pago, pago_tipo, status, created_at,
+      id, nombre, cedula, celular, correo, metodo_pago, pago_tipo, pago_monto, status, created_at,
       stands ( id, nombre, svg_id,
         tiers ( nombre, color, precio )
       )
@@ -258,13 +272,16 @@ export async function rejectReservation(reservationId) {
  * @param {{ stand_id, nombre, cedula, celular, correo }} data
  * @returns {{ ok: true, reservation_id: string }}
  */
-export async function manualReservation({ stand_id, nombre, cedula, celular, correo }) {
+export async function manualReservation({ stand_id, nombre, cedula, celular, correo, metodo_pago = 'efectivo', pago_tipo = 'completo', pago_monto = null }) {
   const { data, error } = await supabase.rpc('manual_reservation', {
-    p_stand_id: stand_id,
-    p_nombre:   nombre,
-    p_cedula:   cedula,
-    p_celular:  celular,
-    p_correo:   correo,
+    p_stand_id:    stand_id,
+    p_nombre:      nombre,
+    p_cedula:      cedula,
+    p_celular:     celular,
+    p_correo:      correo,
+    p_metodo_pago: metodo_pago,
+    p_pago_tipo:   pago_tipo,
+    p_pago_monto:  pago_monto,
   });
 
   throwIfError(error, 'Error al crear reserva manual');
@@ -298,6 +315,17 @@ export async function startNewCycle(nombre, fecha, hora_expiracion = '23:59:00')
   return data;
 }
 
+/**
+ * Elimina un evento y toda su data asociada (stands, reservas, pdf_exports).
+ * @param {string} eventId - UUID del evento a eliminar
+ */
+export async function deleteEvent(eventId) {
+  const { data, error } = await supabase.rpc('delete_event', { p_event_id: eventId });
+  throwIfError(error, 'Error al eliminar el evento');
+  throwIfRpcError(data);
+  return data;
+}
+
 // ─────────────────────────────────────────────────────────────
 // EXPORTACIÓN PDF
 // ─────────────────────────────────────────────────────────────
@@ -327,7 +355,7 @@ export async function getReservationsForExport(eventId, statusFilter = null) {
   let query = supabase
     .from('reservations')
     .select(`
-      id, nombre, cedula, celular, correo, status, pago_tipo, created_at,
+      id, nombre, cedula, celular, correo, status, pago_tipo, pago_monto, created_at,
       stands ( nombre, svg_id,
         tiers ( nombre, precio, color )
       )

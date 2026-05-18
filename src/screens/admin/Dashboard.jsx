@@ -39,14 +39,30 @@ export function Dashboard() {
   function buildConfirmationWhatsApp(req) {
     const phone = req.celular.replace(/\D/g, '');
     const fullPhone = phone.startsWith('507') ? phone : `507${phone}`;
-    const msg =
-      `*¡Tu reserva ha sido confirmada! ✅*\n\n` +
-      `Hola ${req.nombre}, nos complace informarte que tu solicitud de reserva ha sido *aprobada*.\n\n` +
-      `*Detalles de tu reserva:*\n` +
-      `- Stand: ${req.stands?.nombre}\n` +
-      `- Categoría: ${req.stands?.tiers?.nombre}\n` +
-      `- Precio total: $${req.stands?.tiers?.precio} USD\n\n` +
-      `Si tienes alguna pregunta, no dudes en contactarnos. ¡Gracias!`;
+    const metodo = req.metodo_pago === 'yappi' ? 'Yappi' : 'Efectivo';
+    const precio = req.stands?.tiers?.precio ?? 0;
+
+    const msg = req.pago_tipo === 'abono'
+      ? `*¡Tu reserva ha sido confirmada!*\n\n` +
+        `Hola ${req.nombre}, nos complace informarte que tu solicitud de reserva ha sido *aprobada*.\n\n` +
+        `*Detalles de tu reserva:*\n` +
+        `- Stand: ${req.stands?.nombre}\n` +
+        `- Categoría: ${req.stands?.tiers?.nombre}\n` +
+        `- Precio total: $${precio} USD\n` +
+        `- Método de pago: ${metodo}\n` +
+        `- Tipo de pago: Abono parcial\n\n` +
+        `*Recuerda que tienes un saldo pendiente.* Por favor coordina el pago del monto restante con nosotros a la brevedad.\n\n` +
+        `Si tienes alguna pregunta, no dudes en contactarnos. ¡Gracias!`
+      : `*¡Tu reserva ha sido confirmada!*\n\n` +
+        `Hola ${req.nombre}, nos complace informarte que tu solicitud de reserva ha sido *aprobada*.\n\n` +
+        `*Detalles de tu reserva:*\n` +
+        `- Stand: ${req.stands?.nombre}\n` +
+        `- Categoría: ${req.stands?.tiers?.nombre}\n` +
+        `- Precio total: $${precio} USD\n` +
+        `- Método de pago: ${metodo}\n` +
+        `- Tipo de pago: Pago completo\n\n` +
+        `Si tienes alguna pregunta, no dudes en contactarnos. ¡Gracias!`;
+
     return `https://wa.me/${fullPhone}?text=${encodeURIComponent(msg)}`;
   }
 
@@ -104,7 +120,7 @@ export function Dashboard() {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: T.surface, textAlign: 'left', borderBottom: `1px solid ${T.border}` }}>
-                {['Stand', 'Solicitante', 'Contacto', 'Pago', 'Fecha', 'Acciones'].map(h => (
+                {['Stand', 'Solicitante', 'Contacto', 'Saldo', 'Fecha', 'Acciones'].map(h => (
                   <th key={h} style={{ padding: '12px 24px', fontSize: 11, fontWeight: 700, color: T.textMuted, textTransform: 'uppercase' }}>{h}</th>
                 ))}
               </tr>
@@ -142,13 +158,27 @@ export function Dashboard() {
                         {req.metodo_pago === 'yappi' ? 'Yappi' : 'Efectivo'}
                       </span>
                     </div>
-                    <span style={{
-                      padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 600,
-                      background: req.pago_tipo === 'abono' ? '#FDF1E0' : '#E8F6EC',
-                      color: req.pago_tipo === 'abono' ? '#D97706' : '#16A34A',
-                    }}>
-                      {req.pago_tipo === 'abono' ? 'Abono' : 'Completo'}
-                    </span>
+                    {req.pago_tipo === 'abono' ? (() => {
+                      const total  = req.stands?.tiers?.precio ?? 0;
+                      const pagado = req.pago_monto ?? 0;
+                      const debe   = total - pagado;
+                      return (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                          <span style={{ padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 600, background: '#FDF1E0', color: '#D97706', display: 'inline-block' }}>
+                            Abono {pagado > 0 ? `$${pagado}` : ''}
+                          </span>
+                          {debe > 0 && (
+                            <span style={{ fontSize: 11, fontWeight: 700, color: '#DC2626' }}>
+                              Debe: ${debe}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })() : (
+                      <span style={{ padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 600, background: '#E8F6EC', color: '#16A34A' }}>
+                        Pagado
+                      </span>
+                    )}
                   </td>
                   <td style={{ padding: '16px 24px', color: T.textMuted, fontSize: 13 }}>
                     {new Date(req.created_at).toLocaleDateString()}

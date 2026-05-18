@@ -4,7 +4,7 @@ import { CSCard, CSBadge, CSButton, Icons, CSField, CSInput } from '../../compon
 import { StandMap, Legend } from '../../components/StandMap';
 import { getActiveEvent, getStandsWithTiers, getTiers, releaseStand, manualReservation, updateStandTier, updateStandNombre, subscribeToStands } from '../../api/api';
 
-const EMPTY_FORM = { nombre: '', cedula: '', celular: '', correo: '' };
+const EMPTY_FORM = { nombre: '', cedula: '', celular: '', correo: '', metodo_pago: 'efectivo', pago_tipo: 'completo', pago_monto: '' };
 
 export function AdminMap() {
   const [loading, setLoading] = useState(true);
@@ -26,15 +26,21 @@ export function AdminMap() {
     async function loadData() {
       try {
         setLoading(true);
-        const activeEvent = await getActiveEvent();
+        let activeEvent;
+        try {
+          activeEvent = await getActiveEvent();
+        } catch {
+          if (isMounted) { setEvent(null); setStands([]); }
+          return;
+        }
         if (!isMounted) return;
         setEvent(activeEvent);
-        
+
         const [standsData, tiersData] = await Promise.all([
           getStandsWithTiers(activeEvent.id),
           getTiers()
         ]);
-        
+
         if (!isMounted) return;
         setStands(standsData);
         setTiers(tiersData);
@@ -64,8 +70,9 @@ export function AdminMap() {
       setEvent(activeEvent);
       const data = await getStandsWithTiers(activeEvent.id);
       setStands(data);
-    } catch (error) {
-      console.error(error);
+    } catch {
+      setEvent(null);
+      setStands([]);
     }
   }
 
@@ -115,11 +122,18 @@ export function AdminMap() {
   }
 
   async function handleManualSave() {
-    const { nombre, cedula, celular, correo } = form;
+    const { nombre, cedula, celular, correo, metodo_pago, pago_tipo, pago_monto } = form;
     if (!nombre || !cedula || !celular || !correo) return alert('Completa todos los campos');
+    if (pago_tipo === 'abono' && !pago_monto) return alert('Ingresa el monto del abono');
     setSaving(true);
     try {
-      await manualReservation({ stand_id: selected.id, nombre, cedula, celular, correo });
+      await manualReservation({
+        stand_id:   selected.id,
+        nombre, cedula, celular, correo,
+        metodo_pago,
+        pago_tipo,
+        pago_monto: pago_tipo === 'abono' ? (Number(pago_monto) || null) : null,
+      });
       setIsManual(false);
       setForm(EMPTY_FORM);
       setSelected(null);
@@ -138,6 +152,16 @@ export function AdminMap() {
   }
 
   if (loading) return <div style={{ padding: 40 }}>Cargando mapa...</div>;
+
+  if (!event) return (
+    <div style={{ padding: 40, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 16, color: T.textMuted, textAlign: 'center' }}>
+      <Icons.MapPin size={48} color={T.border} />
+      <div>
+        <div style={{ fontSize: 18, fontWeight: 600, color: T.text, marginBottom: 8 }}>No hay evento activo</div>
+        <div style={{ fontSize: 14 }}>Ve a <strong>Eventos</strong> para iniciar un nuevo evento.</div>
+      </div>
+    </div>
+  );
 
   const status = STATUS[selected?.status] || STATUS.available;
   const tier = selected?.tiers;
@@ -270,6 +294,60 @@ export function AdminMap() {
                   <CSField label="Correo electrónico">
                     <CSInput type="email" placeholder="correo@ejemplo.com" value={form.correo} onChange={e => setForm(f => ({ ...f, correo: e.target.value }))} />
                   </CSField>
+
+                  {/* Método de pago */}
+                  <CSField label="Método de pago">
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      {[{ v: 'efectivo', label: 'Efectivo' }, { v: 'yappi', label: 'Yappi' }].map(({ v, label }) => (
+                        <button key={v} type="button"
+                          onClick={() => setForm(f => ({ ...f, metodo_pago: v }))}
+                          style={{
+                            flex: 1, padding: '8px 0', borderRadius: T.r2, fontSize: 13, fontWeight: 600,
+                            cursor: 'pointer', fontFamily: T.font,
+                            border: `1.5px solid ${form.metodo_pago === v ? T.accent : T.border}`,
+                            background: form.metodo_pago === v ? T.accentSoft : T.surface,
+                            color: form.metodo_pago === v ? T.accent : T.textMuted,
+                          }}
+                        >{label}</button>
+                      ))}
+                    </div>
+                  </CSField>
+
+                  {/* Tipo de pago */}
+                  <CSField label="Tipo de pago">
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      {[{ v: 'completo', label: 'Pago completo' }, { v: 'abono', label: 'Abono' }].map(({ v, label }) => (
+                        <button key={v} type="button"
+                          onClick={() => setForm(f => ({ ...f, pago_tipo: v, pago_monto: '' }))}
+                          style={{
+                            flex: 1, padding: '8px 0', borderRadius: T.r2, fontSize: 13, fontWeight: 600,
+                            cursor: 'pointer', fontFamily: T.font,
+                            border: `1.5px solid ${form.pago_tipo === v ? T.accent : T.border}`,
+                            background: form.pago_tipo === v ? T.accentSoft : T.surface,
+                            color: form.pago_tipo === v ? T.accent : T.textMuted,
+                          }}
+                        >{label}</button>
+                      ))}
+                    </div>
+                  </CSField>
+
+                  {/* Monto del abono */}
+                  {form.pago_tipo === 'abono' && (
+                    <CSField label={`Monto del abono (total: $${selected?.tiers?.precio ?? '—'})`}>
+                      <CSInput
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        placeholder="Ej. 50"
+                        value={form.pago_monto}
+                        onChange={e => {
+                          const val = e.target.value.replace(/[^0-9]/g, '');
+                          setForm(f => ({ ...f, pago_monto: val }));
+                        }}
+                      />
+                    </CSField>
+                  )}
+
                   <CSButton variant="primary" full onClick={handleManualSave} disabled={saving}>
                     {saving ? 'Guardando...' : 'Guardar Reserva'}
                   </CSButton>
