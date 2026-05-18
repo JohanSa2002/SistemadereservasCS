@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { T, TIERS, STATUS } from '../theme/tokens';
 
 const W = 900;
@@ -12,8 +12,66 @@ const BODEGAS = [
 ];
 
 export function StandMap({ stands = [], onSelect, selectedId, height = 520 }) {
-  const [hover, setHover] = useState(null);
-  const [zoom, setZoom] = useState(1);
+  const [hover, setHover]     = useState(null);
+  const [zoom, setZoom]       = useState(1);
+  const [pinching, setPinching] = useState(false);
+  const containerRef = useRef(null);
+  const pinchRef     = useRef(null); // { dist, zoom }
+  const zoomRef      = useRef(zoom);
+  zoomRef.current = zoom;
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    function onTouchStart(e) {
+      if (e.touches.length === 2) {
+        const [a, b] = e.touches;
+        pinchRef.current = {
+          dist: Math.hypot(b.clientX - a.clientX, b.clientY - a.clientY),
+          zoom: zoomRef.current,
+        };
+        setPinching(true);
+      }
+    }
+
+    function onTouchMove(e) {
+      if (e.touches.length !== 2 || !pinchRef.current) return;
+      e.preventDefault(); // requiere listener no-passive
+
+      const [a, b] = e.touches;
+      const newDist = Math.hypot(b.clientX - a.clientX, b.clientY - a.clientY);
+      const scale   = newDist / pinchRef.current.dist;
+      const newZoom = Math.min(3, Math.max(0.4, pinchRef.current.zoom * scale));
+
+      // Centrar el zoom en el punto medio de los dedos
+      const midX = (a.clientX + b.clientX) / 2;
+      const midY = (a.clientY + b.clientY) / 2;
+      const rect  = el.getBoundingClientRect();
+      const focusX = midX - rect.left + el.scrollLeft;
+      const focusY = midY - rect.top  + el.scrollTop;
+      const ratio  = newZoom / zoomRef.current;
+      el.scrollLeft = focusX * ratio - (midX - rect.left);
+      el.scrollTop  = focusY * ratio - (midY - rect.top);
+
+      setZoom(newZoom);
+    }
+
+    function onTouchEnd() {
+      pinchRef.current = null;
+      setPinching(false);
+    }
+
+    el.addEventListener('touchstart', onTouchStart, { passive: true });
+    el.addEventListener('touchmove',  onTouchMove,  { passive: false });
+    el.addEventListener('touchend',   onTouchEnd,   { passive: true });
+
+    return () => {
+      el.removeEventListener('touchstart', onTouchStart);
+      el.removeEventListener('touchmove',  onTouchMove);
+      el.removeEventListener('touchend',   onTouchEnd);
+    };
+  }, []);
 
   return (
     <div style={{
@@ -29,21 +87,25 @@ export function StandMap({ stands = [], onSelect, selectedId, height = 520 }) {
         background: '#fff', border: `1px solid ${T.border}`,
         borderRadius: T.r2, boxShadow: T.shadow1,
       }}>
-        <button onClick={() => setZoom(z => Math.min(3, z + 0.2))}
-          style={{ width: 36, height: 36, border: 'none', background: 'transparent', borderBottom: `1px solid ${T.border}`, fontSize: 18, cursor: 'pointer' }}>＋</button>
-        <button onClick={() => setZoom(z => Math.max(0.4, z - 0.2))}
-          style={{ width: 36, height: 36, border: 'none', background: 'transparent', fontSize: 18, cursor: 'pointer' }}>−</button>
+        <button onClick={() => setZoom(z => Math.min(3, z + 0.25))}
+          style={{ width: 44, height: 44, border: 'none', background: 'transparent', borderBottom: `1px solid ${T.border}`, fontSize: 20, cursor: 'pointer' }}>＋</button>
+        <button onClick={() => setZoom(z => Math.max(0.4, z - 0.25))}
+          style={{ width: 44, height: 44, border: 'none', background: 'transparent', fontSize: 20, cursor: 'pointer' }}>−</button>
       </div>
 
-      <div style={{
-        position: 'absolute', inset: 0,
-        overflow: 'auto', padding: 8,
-      }}>
+      <div
+        ref={containerRef}
+        style={{
+          position: 'absolute', inset: 0,
+          overflow: 'auto', padding: 8,
+          WebkitOverflowScrolling: 'touch',
+        }}
+      >
         <svg
           viewBox={`0 0 ${W} ${H}`}
           width={W * zoom}
           height={H * zoom}
-          style={{ transition: 'width .2s, height .2s', display: 'block', margin: '0 auto' }}
+          style={{ display: 'block', margin: '0 auto', transition: pinching ? 'none' : 'width .15s, height .15s' }}
         >
           {/* Outer border */}
           <rect x="2" y="2" width="896" height="656" rx="4" fill="none" stroke="#ccc" strokeWidth="1" />
@@ -104,7 +166,7 @@ export function StandMap({ stands = [], onSelect, selectedId, height = 520 }) {
             );
           })}
         </svg>
-      </div>
+      </div>  {/* container scroll */}
     </div>
   );
 }

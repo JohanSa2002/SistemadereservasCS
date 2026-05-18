@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { T } from '../../theme/tokens';
 import { CSCard, CSButton, CSLogo } from '../../components/UI';
 import { getActiveEvent } from '../../api/api';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 export function Welcome({ lang, setLang, onStart }) {
   const navigate = useNavigate();
@@ -42,25 +43,26 @@ export function Welcome({ lang, setLang, onStart }) {
     }
   };
 
+  const isMobile = useIsMobile();
   const t = content[lang];
 
   return (
-    <div style={{ 
-      height: '100vh', 
-      background: '#FFFFFF', 
-      display: 'flex', 
-      alignItems: 'center', 
+    <div style={{
+      minHeight: '100vh',
+      background: '#FFFFFF',
+      display: 'flex',
+      alignItems: 'center',
       justifyContent: 'center',
-      padding: 24,
+      padding: isMobile ? 16 : 24,
       position: 'relative',
       overflow: 'hidden'
     }}>
       <div style={{ width: '100%', maxWidth: 440, textAlign: 'center', zIndex: 1 }}>
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
-          <img src="/logo.png" alt="Chiriqui Storage" style={{ height: 160, objectFit: 'contain' }} />
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: isMobile ? 12 : 20 }}>
+          <img src="/logo.png" alt="Chiriqui Storage" style={{ height: isMobile ? 100 : 160, objectFit: 'contain' }} />
         </div>
-        
-        <CSCard style={{ background: '#FFFFFF', border: `1px solid ${T.border}`, padding: 40, borderRadius: 32, boxShadow: T.shadow1 }}>
+
+        <CSCard style={{ background: '#FFFFFF', border: `1px solid ${T.border}`, padding: isMobile ? 20 : 40, borderRadius: 32, boxShadow: T.shadow1 }}>
           <h1 style={{ color: T.text, fontSize: 32, fontWeight: 700, margin: '0 0 8px 0', letterSpacing: -1 }}>{t.welcome}</h1>
           <p style={{ color: T.textMuted, fontSize: 16, margin: '0 0 32px 0', lineHeight: 1.5 }}>{t.selectLanguage}</p>
 

@@ -341,7 +341,7 @@ export function AdminMap() {
                         placeholder="Ej. 50"
                         value={form.pago_monto}
                         onChange={e => {
-                          const val = e.target.value.replace(/[^0-9]/g, '');
+                          const val = e.target.value.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
                           setForm(f => ({ ...f, pago_monto: val }));
                         }}
                       />

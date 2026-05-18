@@ -3,6 +3,7 @@ import { T } from '../../theme/tokens';
 import { CSCard, CSButton, CSBadge, Icons } from '../../components/UI';
 import { StandMap, Legend } from '../../components/StandMap';
 import { getActiveEvent, getStandsWithTiers, getTiers, subscribeToStands } from '../../api/api';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 export function PublicMap({ lang, onSelectStand, onBack }) {
   const [loading, setLoading] = useState(true);
@@ -56,28 +57,68 @@ export function PublicMap({ lang, onSelectStand, onBack }) {
     return () => { if (channel) channel.unsubscribe(); };
   }, []);
 
+  const isMobile = useIsMobile();
+
   if (loading) return <div style={{ padding: 40, textAlign: 'center' }}>{lang === 'es' ? 'Cargando mapa...' : 'Loading map...'}</div>;
+
+  // En móvil: si hay stand seleccionado, mostrar panel a pantalla completa
+  if (isMobile && selected) {
+    return (
+      <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: '#fff' }}>
+        <div style={{ padding: '16px', borderBottom: `1px solid ${T.border}`, display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button
+            onClick={() => setSelected(null)}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'transparent', border: 'none', color: T.textMuted, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: T.font, padding: '10px 4px', minWidth: 44, minHeight: 44 }}
+          >
+            <Icons.ArrowRight size={16} style={{ transform: 'rotate(180deg)' }} />
+            {lang === 'es' ? 'Mapa' : 'Map'}
+          </button>
+        </div>
+        <div style={{ flex: 1, padding: 24, overflowY: 'auto' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
+            <div>
+              <h2 style={{ fontSize: 28, fontWeight: 700, margin: 0 }}>{selected.nombre}</h2>
+              <div style={{ marginTop: 4 }}>
+                <CSBadge tier={selected.tier} dot>{selected.tiers?.nombre}</CSBadge>
+              </div>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: 24, fontWeight: 700, color: T.text }}>${selected.tiers?.precio}</div>
+              <div style={{ fontSize: 12, color: T.textMuted }}>USD</div>
+            </div>
+          </div>
+          {selected.status === 'available' ? (
+            <CSButton variant="primary" size="lg" full onClick={() => onSelectStand(selected)}>
+              {t.reserve}
+            </CSButton>
+          ) : (
+            <CSButton variant="secondary" size="lg" full disabled>
+              {t.notAvailable}
+            </CSButton>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: T.surface }}>
-      <header style={{ padding: '20px 24px', background: '#fff', borderBottom: `1px solid ${T.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      <header style={{ padding: isMobile ? '12px 16px' : '20px 24px', background: '#fff', borderBottom: `1px solid ${T.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 12 }}>
           <button onClick={onBack} style={{
             display: 'flex', alignItems: 'center', gap: 6, background: 'transparent',
             border: 'none', color: T.textMuted, fontSize: 13, fontWeight: 500,
-            cursor: 'pointer', fontFamily: T.font, padding: '6px 10px',
-            borderRadius: T.r1,
+            cursor: 'pointer', fontFamily: T.font, padding: '10px 8px',
+            borderRadius: T.r1, minHeight: 44,
           }}>
             <Icons.ArrowRight size={14} style={{ transform: 'rotate(180deg)' }} />
             {lang === 'es' ? 'Inicio' : 'Home'}
           </button>
-          <div style={{ width: 32, height: 32, background: T.accent, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
+          <div style={{ width: 32, height: 32, background: T.accent, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0 }}>
             <Icons.MapPin size={18} />
           </div>
-          <div>
-            <h1 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>{t.title}</h1>
-          </div>
-          {event && (
+          <h1 style={{ fontSize: isMobile ? 15 : 18, fontWeight: 700, margin: 0 }}>{t.title}</h1>
+          {event && !isMobile && (
             <div style={{
               display: 'flex', flexDirection: 'column',
               padding: '6px 12px', borderRadius: 8,
@@ -97,55 +138,58 @@ export function PublicMap({ lang, onSelectStand, onBack }) {
         <Legend tiers={tiers} lang={lang} />
       </header>
 
-      <main style={{ flex: 1, display: 'flex', minHeight: 0 }}>
-        <div style={{ flex: 1, padding: 24, minHeight: 0, overflow: 'hidden' }}>
-          <div style={{ marginBottom: 16 }}>
-            <p style={{ color: T.textMuted, fontSize: 14 }}>{t.subtitle}</p>
-          </div>
-          <StandMap 
-            stands={stands} 
-            selectedId={selected?.id} 
-            onSelect={setSelected} 
-            height="calc(100% - 40px)" 
+      <main style={{ flex: 1, display: 'flex', flexDirection: isMobile ? 'column' : 'row', minHeight: 0 }}>
+        <div style={{ flex: 1, padding: isMobile ? 12 : 24, minHeight: 0, overflow: 'hidden' }}>
+          {!isMobile && (
+            <div style={{ marginBottom: 16 }}>
+              <p style={{ color: T.textMuted, fontSize: 14 }}>{t.subtitle}</p>
+            </div>
+          )}
+          <StandMap
+            stands={stands}
+            selectedId={selected?.id}
+            onSelect={setSelected}
+            height={isMobile ? '100%' : 'calc(100% - 40px)'}
           />
         </div>
 
-        {/* Desktop Detail Panel */}
-        <aside style={{ width: 360, background: '#fff', borderLeft: `1px solid ${T.border}`, padding: 32, overflowY: 'auto' }}>
-          {selected ? (
-            <div className="animate-fade-in">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
-                <div>
-                  <h2 style={{ fontSize: 28, fontWeight: 700, margin: 0 }}>Stand {selected.nombre.split(' ')[1]}</h2>
-                  <div style={{ marginTop: 4 }}>
-                    <CSBadge tier={selected.tier} dot>{selected.tiers?.nombre}</CSBadge>
+        {/* Panel lateral — solo escritorio */}
+        {!isMobile && (
+          <aside style={{ width: 360, background: '#fff', borderLeft: `1px solid ${T.border}`, padding: 32, overflowY: 'auto' }}>
+            {selected ? (
+              <div className="animate-fade-in">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
+                  <div>
+                    <h2 style={{ fontSize: 28, fontWeight: 700, margin: 0 }}>{selected.nombre}</h2>
+                    <div style={{ marginTop: 4 }}>
+                      <CSBadge tier={selected.tier} dot>{selected.tiers?.nombre}</CSBadge>
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: 24, fontWeight: 700, color: T.text }}>${selected.tiers?.precio}</div>
+                    <div style={{ fontSize: 12, color: T.textMuted }}>USD</div>
                   </div>
                 </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: 24, fontWeight: 700, color: T.text }}>${selected.tiers?.precio}</div>
-                  <div style={{ fontSize: 12, color: T.textMuted }}>USD</div>
+                {selected.status === 'available' ? (
+                  <CSButton variant="primary" size="lg" full onClick={() => onSelectStand(selected)}>
+                    {t.reserve}
+                  </CSButton>
+                ) : (
+                  <CSButton variant="secondary" size="lg" full disabled>
+                    {t.notAvailable}
+                  </CSButton>
+                )}
+              </div>
+            ) : (
+              <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', opacity: 0.5 }}>
+                <div>
+                  <Icons.MapPin size={48} style={{ margin: '0 auto 16px' }} />
+                  <p>{lang === 'es' ? 'Selecciona un stand en el mapa' : 'Select a stand on the map'}</p>
                 </div>
               </div>
-
-{selected.status === 'available' ? (
-                <CSButton variant="primary" size="lg" full onClick={() => onSelectStand(selected)}>
-                  {t.reserve}
-                </CSButton>
-              ) : (
-                <CSButton variant="secondary" size="lg" full disabled>
-                  {t.notAvailable}
-                </CSButton>
-              )}
-            </div>
-          ) : (
-            <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', opacity: 0.5 }}>
-              <div>
-                <Icons.MapPin size={48} style={{ margin: '0 auto 16px' }} />
-                <p>{lang === 'es' ? 'Selecciona un stand en el mapa' : 'Select a stand on the map'}</p>
-              </div>
-            </div>
-          )}
-        </aside>
+            )}
+          </aside>
+        )}
       </main>
     </div>
   );

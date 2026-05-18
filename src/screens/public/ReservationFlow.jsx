@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { T } from '../../theme/tokens';
 import { CSCard, CSButton, CSInput, CSField, Icons, CSBadge } from '../../components/UI';
 import { createReservation } from '../../api/api';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 export function ReservationFlow({ lang, stand, onBack }) {
   const [step, setStep] = useState('form'); // 'form' | 'success'
@@ -136,15 +137,17 @@ export function ReservationFlow({ lang, stand, onBack }) {
     }
   }
 
+  const isMobile = useIsMobile();
+
   if (step === 'success') {
     return (
-      <div style={{ height: '100vh', background: T.surface, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-        <CSCard style={{ maxWidth: 440, textAlign: 'center', padding: 40 }} className="animate-fade-in">
-          <div style={{ width: 80, height: 80, borderRadius: 40, background: T.availableSoft, color: T.available, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 24 }}>
-            <Icons.Check size={40} />
+      <div style={{ minHeight: '100vh', background: T.surface, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: isMobile ? 16 : 24 }}>
+        <CSCard style={{ maxWidth: 440, textAlign: 'center', padding: isMobile ? 24 : 40 }} className="animate-fade-in">
+          <div style={{ width: 72, height: 72, borderRadius: 36, background: T.availableSoft, color: T.available, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
+            <Icons.Check size={36} />
           </div>
-          <h1 style={{ fontSize: 28, fontWeight: 700, margin: '0 0 12px 0' }}>{t.successTitle}</h1>
-          <p style={{ color: T.textMuted, lineHeight: 1.6, marginBottom: 32 }}>
+          <h1 style={{ fontSize: isMobile ? 22 : 28, fontWeight: 700, margin: '0 0 12px 0' }}>{t.successTitle}</h1>
+          <p style={{ color: T.textMuted, lineHeight: 1.6, marginBottom: 28, fontSize: isMobile ? 14 : 16 }}>
             {t.successMsg} <strong>{stand.nombre}</strong>. {t.successNext}
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -156,14 +159,14 @@ export function ReservationFlow({ lang, stand, onBack }) {
   }
 
   return (
-    <div style={{ height: '100vh', background: T.surface, padding: '40px 24px', overflowY: 'auto' }}>
+    <div style={{ minHeight: '100vh', background: T.surface, padding: isMobile ? '20px 16px' : '40px 24px', overflowY: 'auto' }}>
       <div style={{ maxWidth: 600, margin: '0 auto' }}>
-        <button onClick={onBack} style={{ background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', gap: 8, color: T.textMuted, fontWeight: 600, cursor: 'pointer', marginBottom: 24 }}>
+        <button onClick={onBack} style={{ background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', gap: 8, color: T.textMuted, fontWeight: 600, cursor: 'pointer', marginBottom: 24, minHeight: 44, padding: '0 4px' }}>
           <Icons.ArrowRight size={16} style={{ transform: 'rotate(180deg)' }} />
           {t.back}
         </button>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 240px', gap: 32, alignItems: 'start' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 240px', gap: isMobile ? 20 : 32, alignItems: 'start' }}>
           <div>
             <div style={{ fontSize: 12, fontWeight: 700, color: T.accent, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>{t.step2}</div>
             <h1 style={{ fontSize: 32, fontWeight: 700, margin: '0 0 8px 0' }}>{t.title}</h1>
@@ -176,7 +179,7 @@ export function ReservationFlow({ lang, stand, onBack }) {
               <CSField label={t.id} required>
                 <CSInput icon={<Icons.CreditCard size={16} />} placeholder={t.idPlaceholder} value={formData.cedula} onChange={e => setFormData({...formData, cedula: e.target.value})} required />
               </CSField>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
                 <CSField label={t.phone} required>
                   <CSInput icon={<Icons.Phone size={16} />} placeholder={t.phonePlaceholder} value={formData.celular} onChange={e => setFormData({...formData, celular: e.target.value})} required />
                 </CSField>
@@ -255,7 +258,7 @@ export function ReservationFlow({ lang, stand, onBack }) {
                       placeholder="0"
                       value={pagoMonto}
                       onChange={e => {
-                        const val = e.target.value.replace(/[^0-9]/g, '');
+                        const val = e.target.value.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
                         setPagoMonto(val);
                       }}
                       style={{ paddingLeft: 28 }}
