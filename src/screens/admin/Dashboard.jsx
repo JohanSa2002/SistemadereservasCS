@@ -41,27 +41,31 @@ export function Dashboard() {
     const fullPhone = phone.startsWith('507') ? phone : `507${phone}`;
     const metodo = req.metodo_pago === 'yappi' ? 'Yappi' : 'Efectivo';
     const precio = req.stands?.tiers?.precio ?? 0;
+    const pagado = req.pago_monto ?? 0;
+    const debe   = precio - pagado;
 
-    const msg = req.pago_tipo === 'abono'
-      ? `*¡Tu reserva ha sido confirmada!*\n\n` +
-        `Hola ${req.nombre}, nos complace informarte que tu solicitud de reserva ha sido *aprobada*.\n\n` +
-        `*Detalles de tu reserva:*\n` +
-        `- Stand: ${req.stands?.nombre}\n` +
-        `- Categoría: ${req.stands?.tiers?.nombre}\n` +
-        `- Precio total: $${precio} USD\n` +
-        `- Método de pago: ${metodo}\n` +
-        `- Tipo de pago: Abono parcial\n\n` +
-        `*Recuerda que tienes un saldo pendiente.* Por favor coordina el pago del monto restante con nosotros a la brevedad.\n\n` +
-        `Si tienes alguna pregunta, no dudes en contactarnos. ¡Gracias!`
-      : `*¡Tu reserva ha sido confirmada!*\n\n` +
-        `Hola ${req.nombre}, nos complace informarte que tu solicitud de reserva ha sido *aprobada*.\n\n` +
-        `*Detalles de tu reserva:*\n` +
-        `- Stand: ${req.stands?.nombre}\n` +
-        `- Categoría: ${req.stands?.tiers?.nombre}\n` +
-        `- Precio total: $${precio} USD\n` +
-        `- Método de pago: ${metodo}\n` +
-        `- Tipo de pago: Pago completo\n\n` +
-        `Si tienes alguna pregunta, no dudes en contactarnos. ¡Gracias!`;
+    const pagoLabel = req.pago_tipo === 'adelantado' ? 'Pago total adelantado'
+      : req.pago_tipo === 'dia_evento'               ? 'Pago total día del evento'
+      : req.pago_tipo === 'abono'                    ? 'Abono parcial'
+      : 'Pago completo';
+
+    const pagoDetalle = req.pago_tipo === 'abono'
+      ? `- Abono pagado: $${pagado} USD\n- Saldo pendiente: $${debe} USD\n\n` +
+        `*Recuerda que tienes un saldo pendiente.* Por favor coordina el pago del monto restante con nosotros a la brevedad.\n\n`
+      : req.pago_tipo === 'dia_evento'
+      ? `\n*Recuerda traer el pago completo ($${precio} USD) el día del evento.*\n\n`
+      : '\n';
+
+    const msg =
+      `*¡Tu reserva ha sido confirmada!*\n\n` +
+      `Hola ${req.nombre}, nos complace informarte que tu solicitud de reserva ha sido *aprobada*.\n\n` +
+      `*Detalles de tu reserva:*\n` +
+      `- Stand: ${req.stands?.nombre}\n` +
+      `- Precio total: $${precio} USD\n` +
+      `- Método de pago: ${metodo}\n` +
+      `- Tipo de pago: ${pagoLabel}\n` +
+      pagoDetalle +
+      `Si tienes alguna pregunta, no dudes en contactarnos. ¡Gracias!`;
 
     return `https://wa.me/${fullPhone}?text=${encodeURIComponent(msg)}`;
   }
@@ -174,7 +178,11 @@ export function Dashboard() {
                           )}
                         </div>
                       );
-                    })() : (
+                    })() : req.pago_tipo === 'dia_evento' ? (
+                      <span style={{ padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 600, background: '#FDF1E0', color: '#D97706' }}>
+                        Paga en evento
+                      </span>
+                    ) : (
                       <span style={{ padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 600, background: '#E8F6EC', color: '#16A34A' }}>
                         Pagado
                       </span>

@@ -34,3 +34,5 @@ Thumbs.db
 
 # Supabase
 .supabase/
+supabase/.temp/
+supabase/.branches/

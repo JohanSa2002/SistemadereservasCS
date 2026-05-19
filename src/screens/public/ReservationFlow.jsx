@@ -14,7 +14,7 @@ export function ReservationFlow({ lang, stand, onBack }) {
     correo: '',
     metodo_pago: 'efectivo',
   });
-  const [pagoTipo, setPagoTipo] = useState('total');
+  const [pagoTipo, setPagoTipo] = useState('adelantado');
   const [pagoMonto, setPagoMonto] = useState('');
 
   const t = {
@@ -37,7 +37,8 @@ export function ReservationFlow({ lang, stand, onBack }) {
       paymentMethod: 'Método de pago',
       cash: 'Efectivo',
       paymentType: 'Tipo de pago',
-      paymentTotal: 'Pago total',
+      paymentTotal: 'Pago total adelantado',
+      paymentTotalDia: 'Pago total día del evento',
       paymentAbono: 'Abono',
       paymentAmount: 'Monto a pagar',
       paymentPending: 'Pendiente',
@@ -67,7 +68,8 @@ export function ReservationFlow({ lang, stand, onBack }) {
       paymentMethod: 'Payment method',
       cash: 'Cash',
       paymentType: 'Payment type',
-      paymentTotal: 'Full payment',
+      paymentTotal: 'Full payment (advance)',
+      paymentTotalDia: 'Full payment (event day)',
       paymentAbono: 'Partial payment',
       paymentAmount: 'Amount to pay',
       paymentPending: 'Remaining',
@@ -84,32 +86,47 @@ export function ReservationFlow({ lang, stand, onBack }) {
     const tierNombre = stand.tiers?.nombre ?? '';
     const metodo     = formData.metodo_pago === 'yappi' ? 'Yappi' : t.cash;
     const precio     = stand.tiers?.precio ?? 0;
-    const monto      = pagoTipo === 'total' ? precio : Number(pagoMonto);
+    const monto      = pagoTipo === 'abono' ? Number(pagoMonto) : precio;
     const pendiente  = precio - monto;
 
-    const pagoLineaEs = pagoTipo === 'total'
-      ? `*Tipo de pago:* Pago total — $${monto} USD`
-      : `*Tipo de pago:* Abono — $${monto} USD (pendiente: $${pendiente} USD)`;
-    const pagoLineaEn = pagoTipo === 'total'
-      ? `*Payment type:* Full payment — $${monto} USD`
-      : `*Payment type:* Partial payment — $${monto} USD (remaining: $${pendiente} USD)`;
+    const labelEs = pagoTipo === 'adelantado' ? 'Pago total adelantado'
+      : pagoTipo === 'dia_evento' ? 'Pago total día del evento'
+      : 'Abono';
+    const labelEn = pagoTipo === 'adelantado' ? 'Full payment (advance)'
+      : pagoTipo === 'dia_evento' ? 'Full payment (event day)'
+      : 'Partial payment';
+
+    const pagoLineaEs = pagoTipo === 'abono'
+      ? `*Tipo de pago:* ${labelEs} — $${monto} USD (pendiente: $${pendiente} USD)`
+      : `*Tipo de pago:* ${labelEs} — $${precio} USD`;
+    const pagoLineaEn = pagoTipo === 'abono'
+      ? `*Payment type:* ${labelEn} — $${monto} USD (remaining: $${pendiente} USD)`
+      : `*Payment type:* ${labelEn} — $${precio} USD`;
+
+    const yappiNota = formData.metodo_pago === 'yappi'
+      ? lang === 'es'
+        ? `\n⚠️ *Por favor adjunta la captura de la transacción Yappi al número [NÚMERO].*`
+        : `\n⚠️ *Please attach the Yappi transaction screenshot to [NUMBER].*`
+      : '';
 
     const msg = lang === 'es'
       ? `*Nueva Solicitud de Reserva*\n\n` +
-        `*Stand:* ${stand.nombre} (${tierNombre})\n` +
+        `*Stand:* ${stand.nombre}\n` +
         `*Precio total:* $${precio} USD\n` +
         `*Método de pago:* ${metodo}\n` +
-        `${pagoLineaEs}\n\n` +
+        `${pagoLineaEs}` +
+        `${yappiNota}\n\n` +
         `*Datos del solicitante:*\n` +
         `- Nombre: ${formData.nombre}\n` +
         `- Cédula: ${formData.cedula}\n` +
         `- Celular: ${formData.celular}\n` +
         `- Correo: ${formData.correo}`
       : `*New Reservation Request*\n\n` +
-        `*Stand:* ${stand.nombre} (${tierNombre})\n` +
+        `*Stand:* ${stand.nombre}\n` +
         `*Total price:* $${precio} USD\n` +
         `*Payment method:* ${metodo}\n` +
-        `${pagoLineaEn}\n\n` +
+        `${pagoLineaEn}` +
+        `${yappiNota}\n\n` +
         `*Applicant details:*\n` +
         `- Name: ${formData.nombre}\n` +
         `- ID: ${formData.cedula}\n` +
@@ -125,8 +142,8 @@ export function ReservationFlow({ lang, stand, onBack }) {
       await createReservation({
         stand_id: stand.id,
         ...formData,
-        pago_tipo:  pagoTipo === 'total' ? 'completo' : 'abono',
-        pago_monto: pagoTipo === 'total' ? null : (Number(pagoMonto) || null),
+        pago_tipo:  pagoTipo,
+        pago_monto: pagoTipo === 'abono' ? (Number(pagoMonto) || null) : null,
       });
       window.open(buildWhatsAppURL(), '_blank');
       setStep('success');
@@ -205,7 +222,11 @@ export function ReservationFlow({ lang, stand, onBack }) {
                           name="metodo_pago"
                           value={method}
                           checked={active}
-                          onChange={() => setFormData({ ...formData, metodo_pago: method })}
+                          onChange={() => {
+                            const next = { ...formData, metodo_pago: method };
+                            setFormData(next);
+                            if (method === 'yappi' && pagoTipo === 'dia_evento') setPagoTipo('adelantado');
+                          }}
                           style={{ accentColor: T.accent, width: 16, height: 16 }}
                         />
                         <span style={{ fontWeight: 600, fontSize: 14, color: active ? T.accentDark : T.text }}>{label}</span>
@@ -217,23 +238,31 @@ export function ReservationFlow({ lang, stand, onBack }) {
 
               {/* Tipo de pago */}
               <CSField label={t.paymentType}>
-                <div style={{ display: 'flex', gap: 12, marginTop: 4 }}>
-                  {[{ val: 'total', label: t.paymentTotal }, { val: 'abono', label: t.paymentAbono }].map(({ val, label }) => {
-                    const active = pagoTipo === val;
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
+                  {[
+                    { val: 'adelantado', label: t.paymentTotal },
+                    { val: 'dia_evento', label: t.paymentTotalDia },
+                    { val: 'abono',      label: t.paymentAbono },
+                  ].map(({ val, label }) => {
+                    const active   = pagoTipo === val;
+                    const disabled = val === 'dia_evento' && formData.metodo_pago === 'yappi';
                     return (
                       <label key={val} style={{
-                        flex: 1, display: 'flex', alignItems: 'center', gap: 10,
-                        padding: '12px 16px', borderRadius: T.r2, cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', gap: 10,
+                        padding: '12px 16px', borderRadius: T.r2,
+                        cursor: disabled ? 'not-allowed' : 'pointer',
                         border: `2px solid ${active ? T.accent : T.border}`,
-                        background: active ? T.accentSoft : '#fff',
+                        background: disabled ? T.surface2 : active ? T.accentSoft : '#fff',
+                        opacity: disabled ? 0.45 : 1,
                         transition: 'all 0.15s',
                       }}>
                         <input
                           type="radio" name="pagoTipo" value={val}
                           checked={active}
+                          disabled={disabled}
                           onChange={() => {
                             setPagoTipo(val);
-                            if (val === 'total') setPagoMonto('');
+                            if (val !== 'abono') setPagoMonto('');
                           }}
                           style={{ accentColor: T.accent, width: 16, height: 16 }}
                         />

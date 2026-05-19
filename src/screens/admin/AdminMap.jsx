@@ -4,7 +4,7 @@ import { CSCard, CSBadge, CSButton, Icons, CSField, CSInput } from '../../compon
 import { StandMap, Legend } from '../../components/StandMap';
 import { getActiveEvent, getStandsWithTiers, getTiers, releaseStand, manualReservation, updateStandTier, updateStandNombre, subscribeToStands } from '../../api/api';
 
-const EMPTY_FORM = { nombre: '', cedula: '', celular: '', correo: '', metodo_pago: 'efectivo', pago_tipo: 'completo', pago_monto: '' };
+const EMPTY_FORM = { nombre: '', cedula: '', celular: '', correo: '', metodo_pago: 'efectivo', pago_tipo: 'adelantado', pago_monto: '' };
 
 export function AdminMap() {
   const [loading, setLoading] = useState(true);
@@ -313,7 +313,7 @@ export function AdminMap() {
                     <div style={{ display: 'flex', gap: 8 }}>
                       {[{ v: 'efectivo', label: 'Efectivo' }, { v: 'yappi', label: 'Yappi' }].map(({ v, label }) => (
                         <button key={v} type="button"
-                          onClick={() => setForm(f => ({ ...f, metodo_pago: v }))}
+                          onClick={() => setForm(f => ({ ...f, metodo_pago: v, pago_tipo: v === 'yappi' && f.pago_tipo === 'dia_evento' ? 'adelantado' : f.pago_tipo }))}
                           style={{
                             flex: 1, padding: '8px 0', borderRadius: T.r2, fontSize: 13, fontWeight: 600,
                             cursor: 'pointer', fontFamily: T.font,
@@ -328,19 +328,28 @@ export function AdminMap() {
 
                   {/* Tipo de pago */}
                   <CSField label="Tipo de pago">
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      {[{ v: 'completo', label: 'Pago completo' }, { v: 'abono', label: 'Abono' }].map(({ v, label }) => (
-                        <button key={v} type="button"
-                          onClick={() => setForm(f => ({ ...f, pago_tipo: v, pago_monto: '' }))}
-                          style={{
-                            flex: 1, padding: '8px 0', borderRadius: T.r2, fontSize: 13, fontWeight: 600,
-                            cursor: 'pointer', fontFamily: T.font,
-                            border: `1.5px solid ${form.pago_tipo === v ? T.accent : T.border}`,
-                            background: form.pago_tipo === v ? T.accentSoft : T.surface,
-                            color: form.pago_tipo === v ? T.accent : T.textMuted,
-                          }}
-                        >{label}</button>
-                      ))}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {[
+                        { v: 'adelantado', label: 'Pago total adelantado' },
+                        { v: 'dia_evento', label: 'Pago total día del evento' },
+                        { v: 'abono',      label: 'Abono' },
+                      ].map(({ v, label }) => {
+                        const disabled = v === 'dia_evento' && form.metodo_pago === 'yappi';
+                        return (
+                          <button key={v} type="button"
+                            disabled={disabled}
+                            onClick={() => !disabled && setForm(f => ({ ...f, pago_tipo: v, pago_monto: '' }))}
+                            style={{
+                              padding: '8px 12px', borderRadius: T.r2, fontSize: 13, fontWeight: 600,
+                              cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: T.font, textAlign: 'left',
+                              border: `1.5px solid ${form.pago_tipo === v ? T.accent : T.border}`,
+                              background: disabled ? T.surface2 : form.pago_tipo === v ? T.accentSoft : T.surface,
+                              color: disabled ? T.textSubtle : form.pago_tipo === v ? T.accent : T.textMuted,
+                              opacity: disabled ? 0.45 : 1,
+                            }}
+                          >{label}</button>
+                        );
+                      })}
                     </div>
                   </CSField>
 
