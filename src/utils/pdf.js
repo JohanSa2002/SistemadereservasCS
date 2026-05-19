@@ -28,7 +28,7 @@ function buildMapSVG(stands) {
     const fill   = FILL[s.status]   ?? '#F4F4F2';
     const stroke = STROKE[s.status] ?? '#9A968E';
     const fs     = s.w < 36 ? 8 : s.w < 60 ? 9 : s.w < 90 ? 11 : 13;
-    const label  = (s.nombre ?? '').replace(/^(Stand|A|B)\s*/i, s.nombre.includes(' ') ? '' : '');
+    const label  = s.nombre.replace('Stand ', '');
     const dot    = s.status !== 'available'
       ? `<circle cx="${s.x + s.w - 5}" cy="${s.y + 5}" r="3" fill="${stroke}" stroke="#fff" stroke-width="1"/>`
       : '';
@@ -37,7 +37,7 @@ function buildMapSVG(stands) {
         fill="${fill}" stroke="${stroke}" stroke-width="1.2"/>
       <text x="${s.x + s.w / 2}" y="${s.y + s.h / 2}"
         text-anchor="middle" dominant-baseline="middle"
-        font-size="${fs}" font-weight="600" fill="${stroke}">${s.nombre.split(' ').slice(1).join(' ') || s.nombre}</text>
+        font-size="${fs}" font-weight="600" fill="${stroke}">${label}</text>
       ${dot}`;
   }).join('');
 
