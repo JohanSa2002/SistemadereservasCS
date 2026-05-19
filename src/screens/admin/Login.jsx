@@ -17,6 +17,8 @@ export function Login({ onLogin }) {
     setError(null);
     try {
       await signIn(email, password);
+      // Mark this tab as the active admin session
+      sessionStorage.setItem('admin_tab_active', '1');
       onLogin();
     } catch (err) {
       setError(err.message);
@@ -74,7 +76,7 @@ export function Login({ onLogin }) {
         </CSCard>
         
         <p style={{ textAlign: 'center', marginTop: 24, fontSize: 13, color: T.textSubtle }}>
-          &copy; 2026 Standly — Gestión de Reservas
+          &copy; 2026 Chiriquí Storage — Gestión de Reservas
         </p>
       </div>
     </div>

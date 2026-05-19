@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { getSession, onAuthStateChange } from './api/api';
+import { getSession, onAuthStateChange, signOut, clearLocalSession } from './api/api';
 
 // Admin Screens
 import { AdminLayout } from './screens/admin/AdminLayout';
@@ -16,24 +16,56 @@ import { Welcome } from './screens/public/Welcome';
 import { PublicMap } from './screens/public/PublicMap';
 import { ReservationFlow } from './screens/public/ReservationFlow';
 
+const ADMIN_CHANNEL_NAME = 'standly_admin_session';
+
 export default function App() {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
   const [lang, setLang] = useState('es');
   const [publicStep, setPublicStep] = useState('welcome'); // 'welcome' | 'map' | 'form'
   const [selectedStand, setSelectedStand] = useState(null);
+  const sessionRef = useRef(null);
+  const channelRef = useRef(null);
 
   useEffect(() => {
-    getSession().then(({ session }) => {
-      setSession(session);
+    getSession().then(async ({ session }) => {
+      const tabActive = sessionStorage.getItem('admin_tab_active');
+      if (session && !tabActive) {
+        // Stale session from a closed tab: clear only local storage (no network call)
+        // so SIGNED_OUT fires synchronously before the login page is shown,
+        // preventing a race with any subsequent signIn.
+        await clearLocalSession();
+        sessionRef.current = null;
+        setSession(null);
+      } else {
+        sessionRef.current = session;
+        setSession(session);
+      }
       setLoading(false);
     });
 
     const { subscription } = onAuthStateChange((_event, session) => {
+      if (_event === 'SIGNED_IN') {
+        // Use the same channel object so the sender is excluded from receiving it
+        channelRef.current?.postMessage('NEW_LOGIN');
+      }
+      sessionRef.current = session;
       setSession(session);
     });
 
-    return () => subscription.unsubscribe();
+    // Kick out this tab if another tab logs in
+    channelRef.current = new BroadcastChannel(ADMIN_CHANNEL_NAME);
+    channelRef.current.onmessage = (e) => {
+      if (e.data === 'NEW_LOGIN' && sessionRef.current) {
+        sessionStorage.removeItem('admin_tab_active');
+        signOut();
+      }
+    };
+
+    return () => {
+      subscription.unsubscribe();
+      channelRef.current?.close();
+    };
   }, []);
 
   if (loading) return null;

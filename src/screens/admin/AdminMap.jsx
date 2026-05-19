@@ -22,6 +22,7 @@ export function AdminMap() {
   useEffect(() => {
     let channel;
     let isMounted = true;
+    let expiryTimer;
 
     async function loadData() {
       try {
@@ -35,6 +36,17 @@ export function AdminMap() {
         }
         if (!isMounted) return;
         setEvent(activeEvent);
+
+        // Auto-clear map when event expires while admin is on this page
+        if (activeEvent.fecha && activeEvent.hora_expiracion) {
+          const msLeft = new Date(`${activeEvent.fecha}T${activeEvent.hora_expiracion}`) - Date.now();
+          if (msLeft > 0) {
+            expiryTimer = setTimeout(() => {
+              if (isMounted) { setEvent(null); setStands([]); setSelected(null); }
+              if (channel) { channel.unsubscribe(); channel = null; }
+            }, msLeft);
+          }
+        }
 
         const [standsData, tiersData] = await Promise.all([
           getStandsWithTiers(activeEvent.id),
@@ -58,8 +70,9 @@ export function AdminMap() {
     }
 
     loadData();
-    return () => { 
+    return () => {
       isMounted = false;
+      clearTimeout(expiryTimer);
       if (channel) channel.unsubscribe();
     };
   }, []);

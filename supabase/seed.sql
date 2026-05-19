@@ -3,8 +3,10 @@ INSERT INTO auth.users (id,instance_id,aud,role,email,encrypted_password,email_c
 VALUES ('00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000000','authenticated','authenticated','chiriquistorageadmin@gmail.com',crypt('chiriquistorage2026.',gen_salt('bf')),now(),'{"provider":"email","providers":["email"]}','{}',now(),now(),false,'','','','','','','','','')
 ON CONFLICT (id) DO NOTHING;
 
+-- Evento plantilla: inactivo. El admin crea el primer ciclo real desde la pantalla de Eventos,
+-- lo que clona estos stands y activa el nuevo evento.
 INSERT INTO public.events (nombre, fecha, activo)
-VALUES ('Expo Emprende Local', CURRENT_DATE + INTERVAL '30 days', true);
+VALUES ('Plantilla de Stands', CURRENT_DATE, false);
 
 DO $$
 DECLARE
@@ -12,7 +14,7 @@ DECLARE
   v_tier_a uuid;
   v_tier_b uuid;
 BEGIN
-  SELECT id INTO v_event_id FROM public.events WHERE activo = true LIMIT 1;
+  SELECT id INTO v_event_id FROM public.events ORDER BY created_at DESC LIMIT 1;
   SELECT id INTO v_tier_a FROM public.tiers WHERE nombre = 'Categoría A' LIMIT 1;
   SELECT id INTO v_tier_b FROM public.tiers WHERE nombre = 'Categoría B' LIMIT 1;
   

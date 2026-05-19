@@ -1,5 +1,54 @@
 // Helpers de generación de PDF compartidos entre Export y Cycles
 
+const MAP_W = 900;
+const MAP_H = 660;
+
+const BODEGAS_PRINT = [
+  { label: '15', sub: 'BODEGA', x: 668, y:  44, w: 100, h:  88 },
+  { label: '26', sub: 'BODEGA', x: 668, y: 140, w: 100, h: 100 },
+  { label: '25', sub: 'BODEGA', x: 776, y:  44, w: 116, h: 260 },
+];
+
+const FILL   = { available: '#E8F6EC', pending: '#FDF1E0', reserved: '#FCE9E9' };
+const STROKE = { available: '#16A34A', pending: '#D97706', reserved: '#DC2626' };
+
+function buildMapSVG(stands) {
+  const bodegas = BODEGAS_PRINT.map(b => `
+    <rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="3"
+      fill="#f0e8d0" stroke="#8B6914" stroke-width="1.2" stroke-dasharray="4 2"/>
+    <text x="${b.x + b.w / 2}" y="${b.y + b.h / 2 - 7}"
+      text-anchor="middle" dominant-baseline="middle"
+      font-size="14" font-weight="700" fill="#6B4A0A">${b.label}</text>
+    <text x="${b.x + b.w / 2}" y="${b.y + b.h / 2 + 9}"
+      text-anchor="middle" dominant-baseline="middle"
+      font-size="9" fill="#8B6914" letter-spacing="0.5">${b.sub}</text>
+  `).join('');
+
+  const standElems = stands.map(s => {
+    const fill   = FILL[s.status]   ?? '#F4F4F2';
+    const stroke = STROKE[s.status] ?? '#9A968E';
+    const fs     = s.w < 36 ? 8 : s.w < 60 ? 9 : s.w < 90 ? 11 : 13;
+    const label  = (s.nombre ?? '').replace(/^(Stand|A|B)\s*/i, s.nombre.includes(' ') ? '' : '');
+    const dot    = s.status !== 'available'
+      ? `<circle cx="${s.x + s.w - 5}" cy="${s.y + 5}" r="3" fill="${stroke}" stroke="#fff" stroke-width="1"/>`
+      : '';
+    return `
+      <rect x="${s.x}" y="${s.y}" width="${s.w}" height="${s.h}" rx="3"
+        fill="${fill}" stroke="${stroke}" stroke-width="1.2"/>
+      <text x="${s.x + s.w / 2}" y="${s.y + s.h / 2}"
+        text-anchor="middle" dominant-baseline="middle"
+        font-size="${fs}" font-weight="600" fill="${stroke}">${s.nombre.split(' ').slice(1).join(' ') || s.nombre}</text>
+      ${dot}`;
+  }).join('');
+
+  return `<svg viewBox="0 0 ${MAP_W} ${MAP_H}" width="${MAP_W}" height="${MAP_H}"
+    xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block;">
+    <rect x="2" y="2" width="896" height="656" rx="4" fill="none" stroke="#ccc" stroke-width="1"/>
+    ${bodegas}
+    ${standElems}
+  </svg>`;
+}
+
 function groupByTier(reservations) {
   const map = {};
   for (const r of reservations) {
@@ -26,10 +75,44 @@ function fmtCurrency(n) {
   return new Intl.NumberFormat('es-PA', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(n);
 }
 
-export function buildPrintHTML(event, reservations) {
+export function buildPrintHTML(event, reservations, stands = []) {
   const now    = fmtDateTime(new Date().toISOString());
   const total  = reservations.length;
   const groups = groupByTier(reservations);
+
+  const nAvailable = stands.filter(s => s.status === 'available').length;
+  const nPending   = stands.filter(s => s.status === 'pending').length;
+  const nReserved  = stands.filter(s => s.status === 'reserved').length;
+
+  const mapSection = stands.length > 0 ? `
+    <div class="map-page">
+      <div class="map-page-title">Estado Final del Mapa de Stands</div>
+      <div class="map-counters">
+        <div class="map-counter" style="border-color:#16A34A;color:#16A34A">
+          <span class="map-counter-n">${nAvailable}</span>
+          <span class="map-counter-l">Disponibles</span>
+        </div>
+        <div class="map-counter" style="border-color:#D97706;color:#D97706">
+          <span class="map-counter-n">${nPending}</span>
+          <span class="map-counter-l">Por confirmar</span>
+        </div>
+        <div class="map-counter" style="border-color:#DC2626;color:#DC2626">
+          <span class="map-counter-n">${nReserved}</span>
+          <span class="map-counter-l">Reservados</span>
+        </div>
+        <div class="map-counter" style="border-color:#6B6862;color:#6B6862">
+          <span class="map-counter-n">${stands.length}</span>
+          <span class="map-counter-l">Total stands</span>
+        </div>
+      </div>
+      <div class="map-svg-wrap">${buildMapSVG(stands)}</div>
+      <div class="map-legend">
+        <span class="map-legend-item"><span class="map-legend-dot" style="background:#E8F6EC;border-color:#16A34A"></span>Disponible</span>
+        <span class="map-legend-item"><span class="map-legend-dot" style="background:#FDF1E0;border-color:#D97706"></span>Por confirmar</span>
+        <span class="map-legend-item"><span class="map-legend-dot" style="background:#FCE9E9;border-color:#DC2626"></span>Reservado</span>
+      </div>
+    </div>
+  ` : '';
 
   const statusBadge = (status) => {
     const labels = { pending: 'Por confirmar', confirmed: 'Confirmado', rejected: 'Rechazado' };
@@ -113,10 +196,21 @@ export function buildPrintHTML(event, reservations) {
     td.mono { font-family: "JetBrains Mono", monospace; font-size: 9px; }
     td.muted { color: #6B6862; }
     .report-footer { position: fixed; bottom: 10mm; left: 16mm; right: 16mm; display: flex; justify-content: space-between; font-size: 8.5px; color: #9A968E; border-top: 1px solid #E7E5E1; padding-top: 5px; }
+    .map-page { break-before: page; page-break-before: always; padding-top: 4px; }
+    .map-page-title { font-size: 13px; font-weight: 700; margin-bottom: 12px; letter-spacing: -0.2px; }
+    .map-counters { display: flex; gap: 12px; margin-bottom: 14px; }
+    .map-counter { border: 1.5px solid; border-radius: 8px; padding: 8px 14px; display: flex; flex-direction: column; align-items: center; min-width: 72px; }
+    .map-counter-n { font-size: 20px; font-weight: 700; line-height: 1; }
+    .map-counter-l { font-size: 8.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; margin-top: 3px; opacity: 0.8; }
+    .map-svg-wrap { border: 1px solid #E7E5E1; border-radius: 6px; overflow: hidden; }
+    .map-legend { display: flex; gap: 16px; margin-top: 10px; }
+    .map-legend-item { display: flex; align-items: center; gap: 5px; font-size: 9px; font-weight: 500; color: #6B6862; }
+    .map-legend-dot { width: 10px; height: 10px; border-radius: 3px; border: 1.5px solid; display: inline-block; flex-shrink: 0; }
     @media screen {
       body { background: #F4F4F2; padding: 32px; }
       .print-wrap { background: #fff; max-width: 760px; margin: 0 auto; padding: 48px 52px; box-shadow: 0 4px 24px rgba(0,0,0,0.10); border-radius: 4px; }
       .report-footer { position: static; border-top: 1px solid #E7E5E1; padding-top: 8px; margin-top: 24px; }
+      .map-page { break-before: unset; page-break-before: unset; padding-top: 32px; border-top: 2px solid #E7E5E1; margin-top: 32px; }
     }
   </style>
 </head>
@@ -124,7 +218,7 @@ export function buildPrintHTML(event, reservations) {
   <div class="print-wrap">
     <header class="report-header">
       <div>
-        <div class="logo">Standly</div>
+        <div class="logo">Chiriquí Storage</div>
         <div class="logo-sub">Sistema de Reservas</div>
         <div class="report-title">Reporte de Reservas</div>
         <div class="report-subtitle">${event?.nombre ?? 'Evento'}</div>
@@ -136,8 +230,9 @@ export function buildPrintHTML(event, reservations) {
       </div>
     </header>
     ${groupSections}
+    ${mapSection}
     <footer class="report-footer">
-      <span>Standly &mdash; Sistema de Reservas de Stands</span>
+      <span>Chiriquí Storage &mdash; Sistema de Reservas de Stands</span>
       <span>Generado: ${now}</span>
     </footer>
   </div>
@@ -146,8 +241,8 @@ export function buildPrintHTML(event, reservations) {
 </html>`;
 }
 
-export function openPrintWindow(event, reservations) {
-  const html = buildPrintHTML(event, reservations);
+export function openPrintWindow(event, reservations, stands = []) {
+  const html = buildPrintHTML(event, reservations, stands);
   const win  = window.open('', '_blank', 'width=900,height=700');
   if (!win) { alert('Permite las ventanas emergentes para generar el PDF.'); return; }
   win.document.open();

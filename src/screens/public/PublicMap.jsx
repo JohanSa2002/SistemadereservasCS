@@ -1,16 +1,24 @@
 import React, { useState, useEffect } from 'react';
+import { Clock } from 'lucide-react';
 import { T } from '../../theme/tokens';
 import { CSCard, CSButton, CSBadge, Icons } from '../../components/UI';
 import { StandMap, Legend } from '../../components/StandMap';
 import { getActiveEvent, getStandsWithTiers, getTiers, subscribeToStands } from '../../api/api';
 import { useIsMobile } from '../../hooks/useIsMobile';
 
+function isExpired(event) {
+  if (!event?.fecha || !event?.hora_expiracion) return false;
+  return new Date() > new Date(`${event.fecha}T${event.hora_expiracion}`);
+}
+
 export function PublicMap({ lang, onSelectStand, onBack }) {
   const [loading, setLoading] = useState(true);
   const [event, setEvent] = useState(null);
+  const [noEvent, setNoEvent] = useState(false);
   const [stands, setStands] = useState([]);
   const [tiers, setTiers] = useState([]);
   const [selected, setSelected] = useState(null);
+  const [expired, setExpired] = useState(false);
 
   const t = {
     es: {
@@ -35,11 +43,22 @@ export function PublicMap({ lang, onSelectStand, onBack }) {
 
   useEffect(() => {
     let channel;
+    let expiryTimer;
+
     async function loadData() {
       try {
         setLoading(true);
         const activeEvent = await getActiveEvent();
         setEvent(activeEvent);
+        setExpired(isExpired(activeEvent));
+
+        // Auto-disable the map at the exact expiration moment
+        const expiresAt = new Date(`${activeEvent.fecha}T${activeEvent.hora_expiracion}`);
+        const msLeft = expiresAt - Date.now();
+        if (msLeft > 0) {
+          expiryTimer = setTimeout(() => setExpired(true), msLeft);
+        }
+
         const data = await getStandsWithTiers(activeEvent.id);
         setStands(data);
         const tiersData = await getTiers();
@@ -48,18 +67,40 @@ export function PublicMap({ lang, onSelectStand, onBack }) {
           setStands(prev => prev.map(s => s.id === newStand.id ? { ...s, ...newStand } : s));
         });
       } catch (error) {
-        console.error('Error loading public map:', error);
+        setNoEvent(true);
       } finally {
         setLoading(false);
       }
     }
     loadData();
-    return () => { if (channel) channel.unsubscribe(); };
+    return () => {
+      if (channel) channel.unsubscribe();
+      clearTimeout(expiryTimer);
+    };
   }, []);
 
   const isMobile = useIsMobile();
 
   if (loading) return <div style={{ padding: 40, textAlign: 'center' }}>{lang === 'es' ? 'Cargando mapa...' : 'Loading map...'}</div>;
+
+  if (noEvent) return (
+    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, background: T.surface, padding: 32, textAlign: 'center' }}>
+      <Clock size={48} color={T.textMuted} />
+      <h2 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>
+        {lang === 'es' ? 'No hay eventos activos' : 'No active events'}
+      </h2>
+      <p style={{ color: T.textMuted, maxWidth: 340, margin: 0 }}>
+        {lang === 'es'
+          ? 'Las reservas no están disponibles en este momento. Vuelve pronto.'
+          : 'Reservations are not available right now. Check back soon.'}
+      </p>
+      <CSButton variant="secondary" onClick={onBack}>
+        {lang === 'es' ? 'Volver al inicio' : 'Back to home'}
+      </CSButton>
+    </div>
+  );
+
+  const expiredLabel = lang === 'es' ? 'Las reservas para este evento han cerrado.' : 'Reservations for this event are closed.';
 
   // En móvil: si hay stand seleccionado, mostrar panel a pantalla completa
   if (isMobile && selected) {
@@ -74,6 +115,12 @@ export function PublicMap({ lang, onSelectStand, onBack }) {
             {lang === 'es' ? 'Mapa' : 'Map'}
           </button>
         </div>
+        {expired && (
+          <div style={{ background: '#FEF2F2', borderBottom: `1px solid #FECACA`, padding: '10px 24px', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Clock size={14} color="#DC2626" />
+            <span style={{ fontSize: 13, color: '#DC2626', fontWeight: 600 }}>{expiredLabel}</span>
+          </div>
+        )}
         <div style={{ flex: 1, padding: 24, overflowY: 'auto' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
             <div>
@@ -87,13 +134,13 @@ export function PublicMap({ lang, onSelectStand, onBack }) {
               <div style={{ fontSize: 12, color: T.textMuted }}>USD</div>
             </div>
           </div>
-          {selected.status === 'available' ? (
+          {!expired && selected.status === 'available' ? (
             <CSButton variant="primary" size="lg" full onClick={() => onSelectStand(selected)}>
               {t.reserve}
             </CSButton>
           ) : (
             <CSButton variant="secondary" size="lg" full disabled>
-              {t.notAvailable}
+              {expired ? (lang === 'es' ? 'Reservas cerradas' : 'Reservations closed') : t.notAvailable}
             </CSButton>
           )}
         </div>
@@ -103,6 +150,12 @@ export function PublicMap({ lang, onSelectStand, onBack }) {
 
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: T.surface }}>
+      {expired && (
+        <div style={{ background: '#FEF2F2', borderBottom: `1px solid #FECACA`, padding: '10px 24px', display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+          <Clock size={14} color="#DC2626" />
+          <span style={{ fontSize: 13, color: '#DC2626', fontWeight: 600 }}>{expiredLabel}</span>
+        </div>
+      )}
       <header style={{ padding: isMobile ? '12px 16px' : '20px 24px', background: '#fff', borderBottom: `1px solid ${T.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 12 }}>
           <button onClick={onBack} style={{
@@ -170,13 +223,13 @@ export function PublicMap({ lang, onSelectStand, onBack }) {
                     <div style={{ fontSize: 12, color: T.textMuted }}>USD</div>
                   </div>
                 </div>
-                {selected.status === 'available' ? (
+                {!expired && selected.status === 'available' ? (
                   <CSButton variant="primary" size="lg" full onClick={() => onSelectStand(selected)}>
                     {t.reserve}
                   </CSButton>
                 ) : (
                   <CSButton variant="secondary" size="lg" full disabled>
-                    {t.notAvailable}
+                    {expired ? (lang === 'es' ? 'Reservas cerradas' : 'Reservations closed') : t.notAvailable}
                   </CSButton>
                 )}
               </div>

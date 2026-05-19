@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { T } from '../../theme/tokens';
 import { CSCard, CSButton } from '../../components/UI';
-import { getActiveEvent, getReservationsForExport } from '../../api/api';
+import { getActiveEvent, getReservationsForExport, getStandsWithTiers } from '../../api/api';
 import { openPrintWindow } from '../../utils/pdf';
 import { FileText, Filter } from 'lucide-react';
 
@@ -38,7 +38,8 @@ export function Export() {
     if (!event || confirmedOnly.length === 0) return;
     setGeneratingPDF(true);
     try {
-      openPrintWindow(event, confirmedOnly);
+      const stands = await getStandsWithTiers(event.id);
+      openPrintWindow(event, confirmedOnly, stands);
     } finally {
       setGeneratingPDF(false);
     }

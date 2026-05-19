@@ -116,7 +116,7 @@ export function CSLogo({ size = 16, color = T.text }) {
       }}>
         <Shield size={size} />
       </div>
-      <span style={{ fontSize: size, fontWeight: 700, letterSpacing: -0.5 }}>Standly</span>
+      <span style={{ fontSize: size, fontWeight: 700, letterSpacing: -0.5 }}>Chiriquí Storage</span>
     </div>
   );
 }

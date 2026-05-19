@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { T } from '../../theme/tokens';
 import { CSCard, CSButton, CSField, CSInput } from '../../components/UI';
-import { getActiveEvent, startNewCycle, deleteEvent, getAllEvents, getReservationsForExport } from '../../api/api';
+import { getActiveEvent, startNewCycle, deleteEvent, getAllEvents, getReservationsForExport, getStandsWithTiers } from '../../api/api';
 import { openPrintWindow } from '../../utils/pdf';
 import { Calendar, RefreshCw, Trash2, FileText, Clock } from 'lucide-react';
 
@@ -19,11 +19,34 @@ export function Cycles() {
   const [downloadingId, setDownloadingId]   = useState(null);
 
   useEffect(() => {
-    getActiveEvent()
-      .then(setActiveEvent)
-      .catch(() => setActiveEvent(null))
-      .finally(() => setLoading(false));
-    loadHistory();
+    let expiryTimer;
+
+    async function init() {
+      try {
+        // getActiveEvent() runs deactivate_expired_events() first, so history
+        // must load AFTER it resolves to read the already-updated activo flag
+        const ev = await getActiveEvent().catch(() => null);
+        setActiveEvent(ev);
+
+        if (ev?.fecha && ev?.hora_expiracion) {
+          const msLeft = new Date(`${ev.fecha}T${ev.hora_expiracion}`) - Date.now();
+          if (msLeft > 0) {
+            expiryTimer = setTimeout(async () => {
+              const fresh = await getActiveEvent().catch(() => null);
+              setActiveEvent(fresh);
+              await loadHistory();
+            }, msLeft);
+          }
+        }
+      } finally {
+        setLoading(false);
+      }
+      // History loads after deactivate_expired_events() has already run
+      await loadHistory();
+    }
+
+    init();
+    return () => clearTimeout(expiryTimer);
   }, []);
 
   async function loadHistory() {
@@ -83,8 +106,11 @@ export function Cycles() {
   async function handleDownloadPDF(ev) {
     setDownloadingId(ev.id);
     try {
-      const reservations = await getReservationsForExport(ev.id, 'confirmed');
-      openPrintWindow(ev, reservations);
+      const [reservations, stands] = await Promise.all([
+        getReservationsForExport(ev.id, 'confirmed'),
+        getStandsWithTiers(ev.id),
+      ]);
+      openPrintWindow(ev, reservations, stands);
     } catch (err) {
       alert(err.message);
     } finally {

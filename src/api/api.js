@@ -37,11 +37,19 @@ export async function signIn(email, password) {
 }
 
 /**
- * Cierra la sesión del administrador actual.
+ * Cierra la sesión del administrador actual (global: invalida el token en el servidor).
  */
 export async function signOut() {
   const { error } = await supabase.auth.signOut();
   throwIfError(error, 'Error al cerrar sesión');
+}
+
+/**
+ * Limpia únicamente la sesión local (sin llamada al servidor).
+ * Usar solo para limpiar sesiones caducadas al abrir una nueva pestaña.
+ */
+export async function clearLocalSession() {
+  await supabase.auth.signOut({ scope: 'local' });
 }
 
 /**
@@ -73,6 +81,9 @@ export function onAuthStateChange(callback) {
  * @throws Si no hay ningún evento activo
  */
 export async function getActiveEvent() {
+  // Auto-deactivate any event whose fecha+hora_expiracion has passed
+  await supabase.rpc('deactivate_expired_events');
+
   const { data, error } = await supabase
     .from('events')
     .select('*')

@@ -1,13 +1,20 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { T } from '../../theme/tokens';
 import { CSLogo, Icons } from '../../components/UI';
 import { LayoutDashboard, Map as MapIcon, Layers, Calendar, FileText, LogOut } from 'lucide-react';
-import { signOut } from '../../api/api';
+import { signOut, getSession } from '../../api/api';
 
 export function AdminLayout({ children }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const [userEmail, setUserEmail] = useState('');
+
+  useEffect(() => {
+    getSession().then(({ session }) => {
+      setUserEmail(session?.user?.email ?? '');
+    });
+  }, []);
 
   const menuItems = [
     { id: 'dashboard', label: 'Resumen', path: '/admin', icon: LayoutDashboard },
@@ -51,11 +58,11 @@ export function AdminLayout({ children }) {
 
         <div style={{ marginTop: 'auto', paddingTop: 20, borderTop: `1px solid ${T.border}` }}>
           <div style={{ padding: '0 16px', marginBottom: 16 }}>
-            <div style={{ fontSize: 13, fontWeight: 600 }}>Admin User</div>
-            <div style={{ fontSize: 12, color: T.textMuted }}>admin@standly.pa</div>
+            <div style={{ fontSize: 13, fontWeight: 600 }}>Admin</div>
+            <div style={{ fontSize: 12, color: T.textMuted }}>{userEmail}</div>
           </div>
           <button
-            onClick={() => { navigate('/'); signOut(); }}
+            onClick={() => { sessionStorage.removeItem('admin_tab_active'); navigate('/'); signOut(); }}
             style={{
               width: '100%', display: 'flex', alignItems: 'center', gap: 12,
               padding: '12px 16px', borderRadius: T.r2, border: 'none',
