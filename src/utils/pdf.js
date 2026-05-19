@@ -149,6 +149,7 @@ export function buildPrintHTML(event, reservations, stands = []) {
               <td class="mono">${r.celular}</td>
               <td class="muted">${r.correo}</td>
               <td>${(() => {
+                if (r.pago_tipo === 'dia_evento') return '<span style="color:#D97706;font-weight:600">Pago día del evento</span>';
                 if (r.pago_tipo !== 'abono') return '<span style="color:#16A34A;font-weight:600">Pagado</span>';
                 const total  = r.stands?.tiers?.precio ?? 0;
                 const pagado = r.pago_monto ?? 0;

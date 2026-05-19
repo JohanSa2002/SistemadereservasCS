@@ -124,7 +124,7 @@ export function Dashboard() {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: T.surface, textAlign: 'left', borderBottom: `1px solid ${T.border}` }}>
-                {['Stand', 'Solicitante', 'Contacto', 'Saldo', 'Fecha', 'Acciones'].map(h => (
+                {['Stand', 'Solicitante', 'Contacto', 'Pago', 'Fecha', 'Acciones'].map(h => (
                   <th key={h} style={{ padding: '12px 24px', fontSize: 11, fontWeight: 700, color: T.textMuted, textTransform: 'uppercase' }}>{h}</th>
                 ))}
               </tr>
@@ -154,39 +154,38 @@ export function Dashboard() {
                     <div style={{ fontSize: 12, color: T.textMuted }}>{req.correo}</div>
                   </td>
                   <td style={{ padding: '16px 24px' }}>
-                    <div style={{ marginBottom: 4 }}>
-                      <span style={{
-                        padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 600,
-                        background: T.surface2, color: T.text,
-                      }}>
-                        {req.metodo_pago === 'yappi' ? 'Yappi' : 'Efectivo'}
-                      </span>
-                    </div>
-                    {req.pago_tipo === 'abono' ? (() => {
-                      const total  = req.stands?.tiers?.precio ?? 0;
+                    {(() => {
+                      const precio = req.stands?.tiers?.precio ?? 0;
                       const pagado = req.pago_monto ?? 0;
-                      const debe   = total - pagado;
-                      return (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                          <span style={{ padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 600, background: '#FDF1E0', color: '#D97706', display: 'inline-block' }}>
-                            Abono {pagado > 0 ? `$${pagado}` : ''}
-                          </span>
-                          {debe > 0 && (
-                            <span style={{ fontSize: 11, fontWeight: 700, color: '#DC2626' }}>
-                              Debe: ${debe}
+                      const debe   = precio - pagado;
+                      const tipoBadge = req.pago_tipo === 'abono'
+                        ? <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                            <span style={{ padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 600, background: '#FDF1E0', color: '#D97706', display: 'inline-block' }}>
+                              Abono {pagado > 0 ? `$${pagado}` : ''}
                             </span>
-                          )}
+                            {debe > 0 && <span style={{ fontSize: 11, fontWeight: 700, color: '#DC2626' }}>Pendiente: ${debe}</span>}
+                          </div>
+                        : req.pago_tipo === 'dia_evento'
+                        ? <span style={{ padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 600, background: '#FDF1E0', color: '#D97706' }}>Paga en evento</span>
+                        : <span style={{ padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 600, background: T.surface2, color: T.textMuted }}>
+                            {req.pago_tipo === 'adelantado' ? 'Pago adelantado' : 'Pago completo'}
+                          </span>;
+                      return (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          <div style={{ fontSize: 15, fontWeight: 700, color: T.text }}>${precio} USD</div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                            <div style={{ fontSize: 10, fontWeight: 700, color: T.textSubtle, textTransform: 'uppercase', letterSpacing: 0.5 }}>Método</div>
+                            <span style={{ padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 600, background: T.surface2, color: T.text, display: 'inline-block' }}>
+                              {req.metodo_pago === 'yappi' ? 'Yappi' : 'Efectivo'}
+                            </span>
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                            <div style={{ fontSize: 10, fontWeight: 700, color: T.textSubtle, textTransform: 'uppercase', letterSpacing: 0.5 }}>Tipo</div>
+                            {tipoBadge}
+                          </div>
                         </div>
                       );
-                    })() : req.pago_tipo === 'dia_evento' ? (
-                      <span style={{ padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 600, background: '#FDF1E0', color: '#D97706' }}>
-                        Paga en evento
-                      </span>
-                    ) : (
-                      <span style={{ padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 600, background: '#E8F6EC', color: '#16A34A' }}>
-                        Pagado
-                      </span>
-                    )}
+                    })()}
                   </td>
                   <td style={{ padding: '16px 24px', color: T.textMuted, fontSize: 13 }}>
                     {new Date(req.created_at).toLocaleDateString()}
